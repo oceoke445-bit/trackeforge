@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/icon";
+import { endSession } from "@/lib/session";
 
 export default function HeaderUser() {
   const router = useRouter();
@@ -81,6 +82,7 @@ export default function HeaderUser() {
                   className="logout-confirm"
                   onClick={() => {
                     setConfirmLogout(false);
+                    endSession();
                     router.push("/login");
                   }}
                 >

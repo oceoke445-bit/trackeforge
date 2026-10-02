@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { startSession } from "@/lib/session";
 // import ThemeToggle from "@/components/theme-toggle";
 import "@/app/login/login.css";
 
@@ -49,7 +50,10 @@ export default function LoginView() {
 
   const finish = () => {
     setPending(true);
-    window.setTimeout(() => router.push("/user-access"), 700);
+    window.setTimeout(() => {
+      startSession();
+      router.push("/user-access");
+    }, 700);
   };
 
   const onSubmit = (event: FormEvent) => {

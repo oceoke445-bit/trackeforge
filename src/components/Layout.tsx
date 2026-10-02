@@ -1,9 +1,10 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useRef, useState, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Sidebar from "@/components/Sidebar";
 import TopHeader from "@/components/TopHeader";
+import { hasSession } from "@/lib/session";
 import { SidebarProvider, useSidebar } from "@/lib/sidebar";
 
 function Shell({ children }: { children: ReactNode }) {
@@ -33,7 +34,29 @@ function Shell({ children }: { children: ReactNode }) {
 
 export default function PlatformLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const signedIn = hasSession();
+    if (pathname === "/login") {
+      if (signedIn) router.replace("/user-access");
+      else setReady(true);
+      return;
+    }
+    if (!signedIn) {
+      router.replace("/login");
+      return;
+    }
+    if (pathname === "/") {
+      router.replace("/user-access");
+      return;
+    }
+    setReady(true);
+  }, [pathname, router]);
+
   if (pathname === "/login") return children;
+  if (!ready || !hasSession()) return null;
 
   return (
     <SidebarProvider>
