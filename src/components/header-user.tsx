@@ -47,10 +47,10 @@ export default function HeaderUser() {
         </button>
         {open && (
           <div className="user-dropdown" role="menu">
-            <button type="button" role="menuitem" onClick={() => setOpen(false)}>
+            {/* <button type="button" role="menuitem" onClick={() => setOpen(false)}>
               <Icon name="user" size={15} />
               My Profile
-            </button>
+            </button> */}
             <button
               type="button"
               role="menuitem"

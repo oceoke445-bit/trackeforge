@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import ThemeToggle from "@/components/theme-toggle";
+// import ThemeToggle from "@/components/theme-toggle";
 import "@/app/login/login.css";
 
 function UserIcon() {
@@ -49,7 +49,7 @@ export default function LoginView() {
 
   const finish = () => {
     setPending(true);
-    window.setTimeout(() => router.push("/"), 700);
+    window.setTimeout(() => router.push("/user-access"), 700);
   };
 
   const onSubmit = (event: FormEvent) => {
@@ -128,7 +128,7 @@ export default function LoginView() {
 
       <section className="auth-pane">
       <div className="auth-tools">
-        <ThemeToggle />
+        {/* <ThemeToggle /> */}
       </div>
       <form className="auth-card" onSubmit={onSubmit}>
         <h1>Sign in</h1>

@@ -2,7 +2,7 @@ import HeaderClock from "@/components/header-clock";
 import HeaderUser from "@/components/header-user";
 import Icon from "@/components/ui/icon";
 import SidebarToggle from "@/components/sidebar-toggle";
-import ThemeToggle from "@/components/theme-toggle";
+// import ThemeToggle from "@/components/theme-toggle";
 
 export default function TopHeader() {
   return (
@@ -16,7 +16,7 @@ export default function TopHeader() {
         </div>
       </div>
       <div className="top-actions">
-        <ThemeToggle />
+        {/* <ThemeToggle /> */}
         <HeaderClock />
         <button className="notify-button" aria-label="Notifications" type="button">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
