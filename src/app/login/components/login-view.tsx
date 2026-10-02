@@ -83,7 +83,7 @@ export default function LoginView() {
         </div>
         <img
           className="auth-hero"
-          src="/images/ChatGPT%20Image%202%20Okt%202026%2C%2014.21.41.png"
+          src="/images/login-hero-dark.png"
           alt=""
         />
         <div className="auth-feature-card">

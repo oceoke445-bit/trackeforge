@@ -42,6 +42,7 @@ html:not([data-theme="gray"]) .auth-side {
   width: auto;
   padding: 0;
   gap: 0;
+  background: #020814 url("/images/login-hero-dark.png") right center / cover no-repeat;
 }
 
 .auth-hero {
@@ -52,7 +53,7 @@ html:not([data-theme="gray"]) .auth-side {
   height: 100%;
   object-fit: cover;
   object-position: right center;
-  background: #020814;
+  background: transparent;
   filter: brightness(1.16) contrast(1.08) saturate(1.22);
 }
 
@@ -109,7 +110,7 @@ html:not([data-theme="gray"]) .auth-feature-card {
     #f8fafc;
 }
 
-.auth-side > * {
+.auth-side > *:not(.auth-hero) {
   position: relative;
   z-index: 1;
 }
