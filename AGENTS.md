@@ -1,4 +1,4 @@
-# TrackForge
+# Traxon
 
 Next.js App Router project for a fleet intelligence dashboard. Styling uses Tailwind CSS v4.
 

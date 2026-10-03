@@ -41,7 +41,7 @@ export function buildBaseStyle(mode: MapMode): string | StyleSpecification {
 
   return {
     version: 8,
-    name: mode === "terrain" ? "TrackForge Terrain" : "TrackForge Satellite",
+    name: mode === "terrain" ? "Traxon Terrain" : "Traxon Satellite",
     glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
     sources: {
       satellite: SATELLITE_RASTER,

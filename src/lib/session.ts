@@ -1,4 +1,4 @@
-const SESSION_KEY = "trackforge-session";
+const SESSION_KEY = "traxon-session";
 
 export function hasSession() {
   if (typeof window === "undefined") return false;

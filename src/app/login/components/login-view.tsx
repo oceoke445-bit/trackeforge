@@ -71,15 +71,8 @@ export default function LoginView() {
     <div className="auth-screen">
       <section className="auth-side">
         <div className="auth-brand">
-          <div className="brand-icon" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <span>
-            <strong>TRACKFORGE</strong>
-            <small>Fleet Intelligence</small>
-          </span>
+          <img className="auth-mark" src="/images/traxon-login-mark.png" alt="" aria-hidden="true" />
+          <img className="auth-wordmark" src="/images/traxon-wordmark.png" alt="Traxon" />
         </div>
         <img
           className="auth-hero"
@@ -135,6 +128,9 @@ export default function LoginView() {
         {/* <ThemeToggle /> */}
       </div>
       <form className="auth-card" onSubmit={onSubmit}>
+        <div className="auth-card-brand">
+          <img className="auth-logo-sm" src="/images/traxon-login-mark.png" alt="Traxon" />
+        </div>
         <h1>Sign in</h1>
 
         <div className="auth-block">

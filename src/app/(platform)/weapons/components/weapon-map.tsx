@@ -30,6 +30,12 @@ function ensureMapWorker() {
   workerReady = true;
 }
 
+function weaponIconId(type: WeaponAsset["type"]) {
+  if (type === "Pistol") return "weapon-pistol";
+  if (type === "DMR" || type === "Sniper Rifle") return "weapon-dmr";
+  return "weapon-rifle";
+}
+
 function toWeaponsGeoJSON(list: WeaponAsset[]): GeoJSON.FeatureCollection {
   return {
     type: "FeatureCollection",
@@ -39,6 +45,7 @@ function toWeaponsGeoJSON(list: WeaponAsset[]): GeoJSON.FeatureCollection {
       properties: {
         id: weapon.id,
         status: weapon.status,
+        icon: weaponIconId(weapon.type),
         label: `${weapon.id} ${statusLabel(weapon.status)}`,
       },
     })),
@@ -128,11 +135,12 @@ function hydrate(map: Map, list: WeaponAsset[], selectedId: string | null) {
       type: "symbol",
       source: "wpn-points",
       layout: {
-        "icon-image": "weapon-icon",
-        "icon-size": 0.36,
+        "icon-image": ["get", "icon"],
+        "icon-size": ["case", ["==", ["get", "id"], selectedId ?? ""], 0.52, 0.46],
         "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
         "text-field": ["get", "label"],
-        "text-offset": [0, 1.55],
+        "text-offset": [0, 1.7],
         "text-size": 10,
         "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
         "text-allow-overlap": false,
@@ -155,6 +163,12 @@ function hydrate(map: Map, list: WeaponAsset[], selectedId: string | null) {
       ["==", ["get", "id"], selectedId ?? ""],
       14,
       12,
+    ]);
+    map.setLayoutProperty("wpn-icons", "icon-size", [
+      "case",
+      ["==", ["get", "id"], selectedId ?? ""],
+      0.52,
+      0.46,
     ]);
   }
 }

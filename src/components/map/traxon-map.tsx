@@ -64,7 +64,7 @@ function hydrateMap(map: Map, mode: MapMode, visibility: Record<LayerGroupId, bo
   }
 }
 
-export default function TrackForgeMap({
+export default function TraxonMap({
   selected,
   onSelect,
   statusFilter = "all",

@@ -10,7 +10,7 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
-const STORAGE_KEY = "trackforge-theme";
+const STORAGE_KEY = "traxon-theme";
 const listeners = new Set<() => void>();
 
 function readTheme(): ThemeName {

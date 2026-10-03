@@ -8,7 +8,7 @@ const roles = ["Security Administrator", "Fleet Admin", "Dispatcher", "Analyst",
 
 export default function ProfilePage() {
   const [fullName, setFullName] = useState("Administrator1");
-  const [email, setEmail] = useState("admin@trackforge.id");
+  const [email, setEmail] = useState("admin@traxon.id");
   const [department, setDepartment] = useState("Security Operations");
   const [role, setRole] = useState("Security Administrator");
   const [phone, setPhone] = useState("81234567890");

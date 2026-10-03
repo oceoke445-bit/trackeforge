@@ -8,7 +8,7 @@ type SidebarContextValue = {
 };
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
-const STORAGE_KEY = "trackforge-sidebar";
+const STORAGE_KEY = "traxon-sidebar";
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(true);

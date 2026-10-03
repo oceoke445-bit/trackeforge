@@ -17,15 +17,8 @@ export default function Sidebar({
   return (
     <aside className="sidebar" id="app-sidebar" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <div className="brand">
-        <div className="brand-icon">
-          <span />
-          <span />
-          <span />
-        </div>
-        <div>
-          <strong>TRACKFORGE</strong>
-          <small>Fleet Intelligence</small>
-        </div>
+        <img className="brand-mark" src="/images/traxon-mark.png" alt="" aria-hidden="true" />
+        <img className="brand-wordmark" src="/images/traxon-wordmark.png" alt="Traxon" />
       </div>
       <nav>
         {navGroups.map((group) => (

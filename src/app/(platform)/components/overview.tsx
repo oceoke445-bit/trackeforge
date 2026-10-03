@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "@/components/ui/icon";
-import TrackForgeMap from "@/components/map/trackforge-map";
+import TraxonMap from "@/components/map/traxon-map";
 import {
   activeAlerts,
   assetBreakdown,
@@ -112,7 +112,7 @@ export default function Overview() {
 
       <section className="cmd-mid">
         <div className="cmd-map-panel panel">
-          <TrackForgeMap selected={selected} onSelect={setSelected} />
+          <TraxonMap selected={selected} onSelect={setSelected} />
         </div>
 
         <aside className="cmd-side">

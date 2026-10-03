@@ -268,9 +268,63 @@ html:not([data-theme="gray"]) .auth-feature-card {
   margin-bottom: 16px;
 }
 
+.auth-side .auth-brand {
+  margin-bottom: 18px;
+}
+
+.auth-logo {
+  display: block;
+  width: min(280px, 100%);
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.35));
+}
+
+.auth-side .auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+}
+
 .auth-mark {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
   flex: none;
-  filter: drop-shadow(0 6px 12px rgba(6, 182, 212, 0.28));
+  background: transparent;
+  filter: none;
+}
+
+.auth-wordmark {
+  display: block;
+  height: 28px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
+  background: transparent;
+  filter: none;
+}
+
+.auth-card-brand {
+  display: none;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.auth-logo-sm {
+  display: block;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.auth-card-brand .auth-logo-sm,
+.auth-side .auth-mark,
+.auth-side .auth-wordmark {
+  background: transparent;
+  box-shadow: none;
 }
 
 .auth-brand strong {
@@ -580,6 +634,7 @@ html:not([data-theme="gray"]) .auth-feature-card {
   .auth-screen,
   html:not([data-theme="gray"]) .auth-screen { grid-template-columns: 1fr; }
   .auth-side { display: none; }
+  .auth-card-brand { display: flex; }
 }
 
 @media (max-width: 520px) {

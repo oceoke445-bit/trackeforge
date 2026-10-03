@@ -236,7 +236,7 @@ const events: AuditEvent[] = [
     actionDetail: "Invalid credentials",
     actionIcon: "lock",
     actionTone: "red",
-    target: "auth.trackforge",
+    target: "auth.traxon",
     targetDetail: "Login endpoint",
     source: "Auth Service",
     sourceDetail: "182.1.44.209",

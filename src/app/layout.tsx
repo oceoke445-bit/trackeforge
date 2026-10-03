@@ -10,12 +10,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "TrackForge — Fleet Intelligence",
+  title: "Traxon — Fleet Intelligence",
   description:
     "Monitor GPS-enabled vehicles and assets in real time with a professional IoT tracking platform designed for fleet and security operations teams.",
 };
 
-const themeBoot = `(function(){try{var t=localStorage.getItem("trackforge-theme");if(t!=="gray"&&t!=="blue")t="blue";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","blue");}})();`;
+const themeBoot = `(function(){try{var t=localStorage.getItem("traxon-theme");if(t!=="gray"&&t!=="blue")t="blue";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","blue");}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -63,7 +63,7 @@ export const activities = [
   { title: "Vehicle stopped", subject: "B 7721 QER · Truck 033", time: "18 min ago", type: "muted", icon: "pin" as IconName },
   { title: "Low battery detected", subject: "DEV-01822 · Container 14", time: "24 min ago", type: "warning", icon: "bolt" as IconName },
   { title: "Geofence exit", subject: "B 3802 PGA · Van 024", time: "31 min ago", type: "warning", icon: "shield" as IconName },
-  { title: "User signed in", subject: "admin@trackforge.io", time: "45 min ago", type: "info", icon: "user" as IconName },
+  { title: "User signed in", subject: "admin@traxon.io", time: "45 min ago", type: "info", icon: "user" as IconName },
   { title: "Device reconnected", subject: "DEV-02941 · Excavator 08", time: "1 hr ago", type: "normal", icon: "signal" as IconName },
   { title: "Route completed", subject: "B 1942 UZY · Truck 042", time: "2 hr ago", type: "muted", icon: "route" as IconName },
   { title: "Idle timeout alert", subject: "B 2640 TRX · Sedan 127", time: "3 hr ago", type: "warning", icon: "clock" as IconName },
