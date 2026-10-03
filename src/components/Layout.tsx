@@ -40,7 +40,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const signedIn = hasSession();
     if (pathname === "/login") {
-      if (signedIn) router.replace("/user-access");
+      if (signedIn) router.replace("/overview");
       else setReady(true);
       return;
     }
@@ -49,7 +49,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
       return;
     }
     if (pathname === "/") {
-      router.replace("/user-access");
+      router.replace("/overview");
       return;
     }
     setReady(true);

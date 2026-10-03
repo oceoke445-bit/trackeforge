@@ -45,7 +45,9 @@ export type IconName =
   | "upload"
   | "key"
   | "image"
-  | "building";
+  | "building"
+  | "crosshair"
+  | "compass";
 
 const paths: Record<IconName, ReactNode> = {
   grid: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
@@ -93,6 +95,8 @@ const paths: Record<IconName, ReactNode> = {
   key: <><circle cx="8" cy="15" r="4"/><path d="M11.5 12.5 20 4m0 0h-4m4 0v4"/></>,
   image: <><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m21 15-4.5-4.5L7 20"/></>,
   building: <><path d="M4 21V5l8-2 8 2v16"/><path d="M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></>,
+  crosshair: <><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="2"/></>,
+  compass: <><circle cx="12" cy="12" r="9"/><path d="m12 4 2.5 7.5L12 14l-2.5-2.5Z"/><path d="m12 20-2.5-7.5L12 10l2.5 2.5Z"/></>,
 };
 
 export default function Icon({ name, size = 18 }: { name: IconName; size?: number }) {

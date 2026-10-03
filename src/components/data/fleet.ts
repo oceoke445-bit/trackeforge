@@ -12,10 +12,17 @@ export type NavGroup = {
 };
 
 export const navGroups: NavGroup[] = [
+  {
+    label: "Dashboard",
+    items: [
+      { label: "Overview", icon: "grid", href: "/overview" },
+      { label: "Groups", icon: "layers", href: "/groups" },
+      { label: "Weapons", icon: "crosshair", href: "/weapons" },
+    ],
+  },
   // {
   //   label: "Operations",
   //   items: [
-  //     { label: "Dashboard", icon: "grid", href: "/" },
   //     { label: "Live Tracking", icon: "map", href: "/tracking" },
   //     { label: "Devices", icon: "cpu", href: "/devices" },
   //     { label: "Vehicles", icon: "truck", href: "/vehicles" },

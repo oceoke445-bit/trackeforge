@@ -52,7 +52,7 @@ export default function LoginView() {
     setPending(true);
     window.setTimeout(() => {
       startSession();
-      router.push("/user-access");
+      router.push("/overview");
     }, 700);
   };
 
