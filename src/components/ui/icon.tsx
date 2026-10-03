@@ -35,7 +35,17 @@ export type IconName =
   | "moon"
   | "monitor"
   | "heart"
-  | "check";
+  | "check"
+  | "download"
+  | "lock"
+  | "server"
+  | "calendar"
+  | "camera"
+  | "trash"
+  | "upload"
+  | "key"
+  | "image"
+  | "building";
 
 const paths: Record<IconName, ReactNode> = {
   grid: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
@@ -73,6 +83,16 @@ const paths: Record<IconName, ReactNode> = {
   monitor: <><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></>,
   heart: <path d="M19.5 12.6 12 20l-7.5-7.4a4.5 4.5 0 0 1 6.4-6.3L12 7.2l1.1-.9a4.5 4.5 0 0 1 6.4 6.3Z"/>,
   check: <path d="M5 12.5 9.5 17 19 7"/>,
+  download: <><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></>,
+  lock: <><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></>,
+  server: <><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></>,
+  calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></>,
+  camera: <><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></>,
+  trash: <><path d="M4 7h16M9 7V5h6v2M7 7v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7"/><path d="M10 11v5M14 11v5"/></>,
+  upload: <><path d="M12 16V5"/><path d="m7 9 5-5 5 5"/><path d="M5 19h14"/></>,
+  key: <><circle cx="8" cy="15" r="4"/><path d="M11.5 12.5 20 4m0 0h-4m4 0v4"/></>,
+  image: <><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m21 15-4.5-4.5L7 20"/></>,
+  building: <><path d="M4 21V5l8-2 8 2v16"/><path d="M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></>,
 };
 
 export default function Icon({ name, size = 18 }: { name: IconName; size?: number }) {

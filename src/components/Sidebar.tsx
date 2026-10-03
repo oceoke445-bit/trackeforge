@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "@/components/ui/icon";
-import { navItems } from "@/components/data/fleet";
+import { navGroups } from "@/components/data/fleet";
 
 export default function Sidebar({
   onMouseEnter,
@@ -28,16 +28,21 @@ export default function Sidebar({
         </div>
       </div>
       <nav>
-        {navItems.map((item) => {
-          const active = pathname === item.href;
-          return (
-            <Link key={item.href} href={item.href} className={active ? "active" : ""}>
-              <Icon name={item.icon} />
-              <span>{item.label}</span>
-              {item.label === "Alerts" && <b>24</b>}
-            </Link>
-          );
-        })}
+        {navGroups.map((group) => (
+          <div key={group.label ?? "main"} className="nav-group">
+            {group.label && <p className="nav-group-label">{group.label}</p>}
+            {group.items.map((item) => {
+              const active = pathname === item.href;
+              return (
+                <Link key={item.href} href={item.href} className={active ? "active" : ""}>
+                  <Icon name={item.icon} />
+                  <span>{item.label}</span>
+                  {item.label === "Alerts" && <b>24</b>}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
       <div className="sidebar-footer">
         <div className="system">

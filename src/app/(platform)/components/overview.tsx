@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Icon from "@/components/ui/icon";
 import MapCanvas from "@/components/shared/map-canvas";
 import { activities, stats, vehicles } from "@/components/data/fleet";
@@ -136,9 +137,9 @@ export default function Overview() {
               </div>
             ))}
           </div>
-          <button className="all-activity">
+          <Link href="/activity-log" className="all-activity">
             View all activity <Icon name="arrow" size={15} />
-          </button>
+          </Link>
         </div>
       </section>
       <section className="bottom-grid">
