@@ -47,7 +47,8 @@ export type IconName =
   | "image"
   | "building"
   | "crosshair"
-  | "compass";
+  | "compass"
+  | "thermo";
 
 const paths: Record<IconName, ReactNode> = {
   grid: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
@@ -97,6 +98,7 @@ const paths: Record<IconName, ReactNode> = {
   building: <><path d="M4 21V5l8-2 8 2v16"/><path d="M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></>,
   crosshair: <><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="2"/></>,
   compass: <><circle cx="12" cy="12" r="9"/><path d="m12 4 2.5 7.5L12 14l-2.5-2.5Z"/><path d="m12 20-2.5-7.5L12 10l2.5 2.5Z"/></>,
+  thermo: <><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/><path d="M12 13v3"/></>,
 };
 
 export default function Icon({ name, size = 18 }: { name: IconName; size?: number }) {

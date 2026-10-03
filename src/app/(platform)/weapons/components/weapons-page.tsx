@@ -14,36 +14,6 @@ import {
   type WeaponStatus,
 } from "./weapons-data";
 
-function Donut({
-  segments,
-  centerValue,
-  centerLabel,
-}: {
-  segments: { value: number; color: string }[];
-  centerValue: string;
-  centerLabel: string;
-}) {
-  const total = segments.reduce((sum, item) => sum + item.value, 0) || 1;
-  let cursor = 0;
-  const stops = segments
-    .map((item) => {
-      const start = (cursor / total) * 100;
-      cursor += item.value;
-      const end = (cursor / total) * 100;
-      return `${item.color} ${start}% ${end}%`;
-    })
-    .join(", ");
-
-  return (
-    <div className="cmd-donut wpn-donut" style={{ background: `conic-gradient(${stops})` }}>
-      <div>
-        <strong>{centerValue}</strong>
-        <span>{centerLabel}</span>
-      </div>
-    </div>
-  );
-}
-
 const FILTERS: { id: MapFilter; label: string; count: number }[] = [
   { id: "all", label: "All Weapons", count: 46 },
   { id: "connected", label: "Connected", count: 43 },
@@ -67,7 +37,9 @@ export default function WeaponsPage() {
   const [mapFilter, setMapFilter] = useState<MapFilter>("all");
   const [selectedId, setSelectedId] = useState("WPN-001");
   const [tableQuery, setTableQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [detailTab, setDetailTab] = useState<(typeof DETAIL_TABS)[number]>("Overview");
+  const pageSize = 6;
 
   const selected = weapons.find((w) => w.id === selectedId) ?? weapons[0];
 
@@ -82,6 +54,12 @@ export default function WeaponsPage() {
     });
   }, [mapFilter, tableQuery]);
 
+  const pageCount = Math.max(1, Math.ceil(tableRows.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageRows = tableRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const rangeStart = tableRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, tableRows.length);
+
   return (
     <div className="wpn-page">
       <header className="wpn-head">
@@ -89,30 +67,19 @@ export default function WeaponsPage() {
           <h1>Weapons</h1>
           <p>Monitor and manage all weapon assets, their status, assignment, and operational readiness.</p>
         </div>
-        <div className="wpn-head-side">
-          <button type="button" className="cmd-op-pill">
-            <i />
-            Operation Alpha — Live Operation
-            <Icon name="chevron" size={13} />
-          </button>
-          <button type="button" className="wpn-register">
-            <Icon name="plus" size={15} />
-            Register Weapon
-          </button>
-        </div>
       </header>
 
       <section className="wpn-stats">
         {weaponStats.map((stat) => (
           <article key={stat.label} className={`wpn-stat ${stat.tone}`}>
-            <div className="wpn-stat-top">
-              <span className="wpn-stat-icon">
-                <Icon name={stat.icon} size={15} />
-              </span>
+            <span className="wpn-stat-icon">
+              <Icon name={stat.icon} size={16} />
+            </span>
+            <div>
+              <small>{stat.label}</small>
+              <strong>{stat.value}</strong>
+              <em>{stat.meta}</em>
             </div>
-            <small>{stat.label}</small>
-            <strong>{stat.value}</strong>
-            <em>{stat.meta}</em>
           </article>
         ))}
       </section>
@@ -127,7 +94,10 @@ export default function WeaponsPage() {
                 role="tab"
                 aria-selected={mapFilter === item.id}
                 className={mapFilter === item.id ? "on" : ""}
-                onClick={() => setMapFilter(item.id)}
+                onClick={() => {
+                  setMapFilter(item.id);
+                  setPage(1);
+                }}
               >
                 {item.label} ({item.count})
               </button>
@@ -136,93 +106,45 @@ export default function WeaponsPage() {
           <WeaponMap filter={mapFilter} selectedId={selected.id} onSelect={setSelectedId} />
         </div>
 
-        <aside className="panel wpn-detail">
-          <div className="wpn-detail-head">
-            <div className="wpn-detail-visual" aria-hidden="true">
-              <Icon name="crosshair" size={28} />
-            </div>
-            <div>
-              <div className="wpn-detail-title">
-                <strong>{selected.type}</strong>
-                <span className={`cmd-status ${statusClass(selected.status)}`}>
-                  <i />
-                  {statusLabel(selected.status)}
-                </span>
-              </div>
-              <p>
-                <code>{selected.id}</code>
-                <span>·</span>
-                Serial {selected.serial}
-              </p>
-            </div>
-          </div>
-
-          <div className="wpn-detail-tabs">
-            {DETAIL_TABS.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                className={detailTab === tab ? "on" : ""}
-                onClick={() => setDetailTab(tab)}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-
-          {detailTab === "Overview" ? (
-            <div className="wpn-detail-grid">
-              <div>
-                <small>Status</small>
-                <strong className={statusClass(selected.status)}>{statusLabel(selected.status)}</strong>
-              </div>
-              <div>
-                <small>Assigned To</small>
-                <strong>
-                  <button type="button" className="wpn-link">
-                    {selected.assignedTo}
-                  </button>
-                </strong>
-              </div>
-              <div className="wpn-battery-cell">
-                <small>Battery</small>
-                <strong>{selected.battery != null ? `${selected.battery}%` : "—"}</strong>
-                {selected.battery != null && (
-                  <span className="wpn-battery-bar">
-                    <i
-                      style={{
-                        width: `${selected.battery}%`,
-                        background:
-                          selected.battery < 20
-                            ? "#fbbf24"
-                            : selected.battery < 40
-                              ? "#fb923c"
-                              : "#34d399",
-                      }}
-                    />
+        <aside className="wpn-charts">
+          <div className="panel wpn-status-chart">
+            <h3>Weapon Status</h3>
+            <div className="wpn-status-body">
+              <img className="wpn-status-photo" src="/images/weapon-rifle-plain.jpg" alt="Assault rifle" />
+              <div className="wpn-status-legend">
+                {weaponStatusBreakdown.map((item) => (
+                  <span key={item.label}>
+                    <i style={{ background: item.color }} />
+                    <em>{item.label}</em>
+                    <b style={{ color: item.color }}>{item.value}</b>
                   </span>
-                )}
-              </div>
-              <div>
-                <small>Squad</small>
-                <strong>{selected.squad}</strong>
-              </div>
-              <div>
-                <small>Last Seen</small>
-                <strong>{selected.lastSeen}</strong>
-              </div>
-              <div>
-                <small>Temperature</small>
-                <strong className={selected.temperature != null && selected.temperature >= 32 ? "hot" : ""}>
-                  {selected.temperature != null ? `${selected.temperature.toFixed(1)} °C` : "—"}
-                </strong>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="wpn-detail-empty">
-              {detailTab} details for {selected.id} will appear here.
+          </div>
+
+          <div className="panel wpn-types-chart">
+            <h3>Weapon Types</h3>
+            <div className="wpn-type-list">
+              {weaponTypeBreakdown.map((item) => (
+                <div key={item.type} className="wpn-type-row">
+                  <span className="wpn-type-icon" style={{ color: item.color }}>
+                    <Icon name="crosshair" size={14} />
+                  </span>
+                  <div>
+                    <strong>{item.type}</strong>
+                    <span className="wpn-type-bar">
+                      <i style={{ width: `${item.pct}%`, background: item.color }} />
+                    </span>
+                  </div>
+                  <em>
+                    {item.count}
+                    <small>{item.pct.toFixed(1)}%</small>
+                  </em>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
         </aside>
       </section>
 
@@ -237,7 +159,10 @@ export default function WeaponsPage() {
               <Icon name="search" size={14} />
               <input
                 value={tableQuery}
-                onChange={(e) => setTableQuery(e.target.value)}
+                onChange={(e) => {
+                  setTableQuery(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Search weapons..."
               />
             </label>
@@ -262,7 +187,7 @@ export default function WeaponsPage() {
                 </tr>
               </thead>
               <tbody>
-                {tableRows.map((weapon) => (
+                {pageRows.map((weapon) => (
                   <tr
                     key={weapon.id}
                     className={`${weapon.status}${selected.id === weapon.id ? " selected" : ""}`}
@@ -308,47 +233,101 @@ export default function WeaponsPage() {
               </tbody>
             </table>
           </div>
+          <div className="cmd-pager">
+            <span>
+              {rangeStart}–{rangeEnd} of {tableRows.length}
+            </span>
+            <div>
+              <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Previous page">
+                <Icon name="chevron" size={14} />
+              </button>
+              {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+                <button key={number} type="button" className={number === currentPage ? "on" : ""} onClick={() => setPage(number)}>
+                  {number}
+                </button>
+              ))}
+              <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="Next page">
+                <Icon name="chevron" size={14} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <aside className="wpn-charts">
-          <div className="panel wpn-status-chart">
-            <h3>Weapon Status</h3>
-            <div className="wpn-status-body">
-              <Donut segments={weaponStatusBreakdown} centerValue="46" centerLabel="Weapons" />
-              <div className="cmd-legend">
-                {weaponStatusBreakdown.map((item) => (
-                  <span key={item.label}>
-                    <i style={{ background: item.color }} />
-                    {item.label}
-                    <b>{item.value}</b>
+        <aside className="panel wpn-detail">
+          <div className="wpn-detail-head">
+            <div className="wpn-detail-visual" aria-hidden="true">
+              <Icon name="crosshair" size={28} />
+            </div>
+            <div>
+              <div className="wpn-detail-title">
+                <strong>{selected.type}</strong>
+                <span className={`cmd-status ${statusClass(selected.status)}`}>
+                  <i />
+                  {statusLabel(selected.status)}
+                </span>
+              </div>
+              <p>
+                <code>{selected.id}</code>
+                <span>·</span>
+                Serial {selected.serial}
+              </p>
+            </div>
+          </div>
+          <div className="wpn-detail-tabs">
+            {DETAIL_TABS.map((tab) => (
+              <button key={tab} type="button" className={detailTab === tab ? "on" : ""} onClick={() => setDetailTab(tab)}>
+                {tab}
+              </button>
+            ))}
+          </div>
+          {detailTab === "Overview" ? (
+            <div className="wpn-detail-grid">
+              <div>
+                <small>Status</small>
+                <strong className={statusClass(selected.status)}>{statusLabel(selected.status)}</strong>
+              </div>
+              <div>
+                <small>Assigned To</small>
+                <strong>
+                  <button type="button" className="wpn-link">
+                    {selected.assignedTo}
+                  </button>
+                </strong>
+              </div>
+              <div className="wpn-battery-cell">
+                <small>Battery</small>
+                <strong>{selected.battery != null ? `${selected.battery}%` : "—"}</strong>
+                {selected.battery != null && (
+                  <span className="wpn-battery-bar">
+                    <i
+                      style={{
+                        width: `${selected.battery}%`,
+                        background: selected.battery < 20 ? "#fbbf24" : selected.battery < 40 ? "#fb923c" : "#34d399",
+                      }}
+                    />
                   </span>
-                ))}
+                )}
+              </div>
+              <div>
+                <small>Squad</small>
+                <strong>{selected.squad}</strong>
+              </div>
+              <div>
+                <small>Last Seen</small>
+                <strong>{selected.lastSeen}</strong>
+              </div>
+              <div>
+                <small>Temperature</small>
+                <strong className={selected.temperature != null && selected.temperature >= 32 ? "hot" : ""}>
+                  {selected.temperature != null ? `${selected.temperature.toFixed(1)} °C` : "—"}
+                </strong>
               </div>
             </div>
-          </div>
-
-          <div className="panel wpn-types-chart">
-            <h3>Weapon Types</h3>
-            <div className="wpn-type-list">
-              {weaponTypeBreakdown.map((item) => (
-                <div key={item.type} className="wpn-type-row">
-                  <span className="wpn-type-icon" style={{ color: item.color }}>
-                    <Icon name="crosshair" size={14} />
-                  </span>
-                  <div>
-                    <strong>{item.type}</strong>
-                    <span className="wpn-type-bar">
-                      <i style={{ width: `${item.pct}%`, background: item.color }} />
-                    </span>
-                  </div>
-                  <em>
-                    {item.count}
-                    <small>{item.pct.toFixed(1)}%</small>
-                  </em>
-                </div>
-              ))}
+          ) : (
+            <div className="wpn-detail-empty">
+              {detailTab} details for {selected.id} will appear here.
             </div>
-          </div>
+          )}
         </aside>
       </section>
     </div>

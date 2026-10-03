@@ -47,13 +47,14 @@ export const weaponTypeBreakdown: { type: WeaponType; count: number; pct: number
   { type: "LMG", count: 4, pct: 8.7, color: "#f87171" },
   { type: "Shotgun", count: 2, pct: 4.3, color: "#fbbf24" },
   { type: "Sniper Rifle", count: 1, pct: 2.2, color: "#22d3ee" },
-  { type: "Pistol", count: 1, pct: 2.2, color: "#94a3b8" },
 ];
 
 export const weaponStatusBreakdown = [
   { label: "Connected", value: 43, color: "#34d399" },
   { label: "Disconnected", value: 2, color: "#f87171" },
   { label: "Unassigned", value: 1, color: "#94a3b8" },
+  { label: "Low Battery", value: 3, color: "#fbbf24" },
+  { label: "Maintenance", value: 2, color: "#22d3ee" },
 ];
 
 export const weapons: WeaponAsset[] = [

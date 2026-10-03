@@ -16,12 +16,12 @@ export type Personnel = {
 };
 
 export const commandStats = [
-  { label: "Total Personnel", value: "48", meta: "↑ 2 from yesterday", tone: "green", icon: "users" as IconName },
-  { label: "Online", value: "45", meta: "93.8% online", tone: "cyan", icon: "signal" as IconName, ring: 94 },
-  { label: "Alert", value: "4", meta: "1 critical · 3 warning", tone: "red", icon: "bell" as IconName },
-  { label: "Total Weapons", value: "46", meta: "↑ 1 from yesterday", tone: "blue", icon: "crosshair" as IconName },
-  { label: "Connected", value: "43", meta: "93.5% connected", tone: "green", icon: "link" as IconName, ring: 94 },
-  { label: "Registered Assets", value: "12", meta: "All operational", tone: "violet", icon: "box" as IconName },
+  { label: "Total Personnel", value: "48", meta: "↑ 2 from yesterday", tone: "green", iconTone: "blue", icon: "users" as IconName },
+  { label: "Online", value: "45", meta: "93.8% online", tone: "green", icon: "user" as IconName, ring: 94 },
+  { label: "Alert (Personnel)", value: "4", meta: "↑ 1 critical · 3 warning", tone: "red", iconTone: "red", icon: "bell" as IconName },
+  { label: "Total Weapons", value: "46", meta: "↑ 1 from yesterday", tone: "green", iconTone: "blue", icon: "crosshair" as IconName },
+  { label: "Connected", value: "43", meta: "93.5% connected", tone: "green", icon: "link" as IconName, ring: 93 },
+  { label: "Registered Assets", value: "12", meta: "All operational", tone: "green", iconTone: "blue", icon: "users" as IconName },
 ];
 
 export const personnel: Personnel[] = [

@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type PointerEvent } from "react";
 import Link from "next/link";
 import Icon from "@/components/ui/icon";
 import TraxonMap from "@/components/map/traxon-map";
 import {
   activeAlerts,
-  assetBreakdown,
   commandStats,
   healthBreakdown,
   liveFeed,
@@ -14,29 +13,106 @@ import {
   type PersonnelStatus,
 } from "./command-data";
 
+function ringSlice(start: number, end: number, outer = 68, inner = 46) {
+  const point = (deg: number, radius: number) => {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return [Math.cos(rad) * radius, Math.sin(rad) * radius];
+  };
+  const large = end - start > 180 ? 1 : 0;
+  const [x1, y1] = point(start, outer);
+  const [x2, y2] = point(end, outer);
+  const [x3, y3] = point(end, inner);
+  const [x4, y4] = point(start, inner);
+  return `M ${x1} ${y1} A ${outer} ${outer} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${inner} ${inner} 0 ${large} 0 ${x4} ${y4} Z`;
+}
+
 function Donut({
   segments,
   centerValue,
   centerLabel,
+  active,
+  onActive,
 }: {
-  segments: { value: number; color: string }[];
+  segments: { value: number; color: string; label: string }[];
   centerValue: string;
   centerLabel: string;
+  active: number | null;
+  onActive: (index: number | null) => void;
 }) {
-  const total = segments.reduce((sum, item) => sum + item.value, 0) || 1;
-  let cursor = 0;
-  const stops = segments
-    .map((item) => {
-      const start = (cursor / total) * 100;
-      cursor += item.value;
-      const end = (cursor / total) * 100;
-      return `${item.color} ${start}% ${end}%`;
-    })
-    .join(", ");
+  const slices = useMemo(() => {
+    const total = segments.reduce((sum, item) => sum + item.value, 0) || 1;
+    let cursor = 0;
+    return segments.map((item) => {
+      const span = (item.value / total) * 360;
+      const start = cursor;
+      cursor += span;
+      const pad = span > 10 ? 0.7 : 0.15;
+      const mid = ((start + span / 2 - 90) * Math.PI) / 180;
+      return {
+        ...item,
+        d: ringSlice(start + pad, start + span - pad),
+        tx: Math.cos(mid),
+        ty: Math.sin(mid),
+      };
+    });
+  }, [segments]);
+  const [angle, setAngle] = useState(0);
+  const drag = useRef<{ x: number; a: number } | null>(null);
+
+  function onPointerDown(event: PointerEvent<HTMLDivElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { x: event.clientX, a: angle };
+  }
+
+  function onPointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!drag.current) return;
+    setAngle(drag.current.a + (event.clientX - drag.current.x) * 0.6);
+  }
+
+  function onPointerUp() {
+    drag.current = null;
+  }
 
   return (
-    <div className="cmd-donut" style={{ background: `conic-gradient(${stops})` }}>
-      <div>
+    <div
+      className="cmd-donut-stage"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      role="img"
+      aria-label={`${centerValue} ${centerLabel}. Drag to rotate.`}
+    >
+      <div className="cmd-donut-spin" style={{ transform: `rotate(${angle}deg)` }}>
+        <svg className="cmd-donut-svg" viewBox="-84 -84 168 168">
+          <g className="cmd-donut-depth" transform="translate(0 6)">
+            {slices.map((slice) => (
+              <path key={slice.label} d={slice.d} fill={slice.color} />
+            ))}
+          </g>
+          {slices.map((slice, index) => (
+            <g key={slice.label}>
+              <path
+                className={active === index ? "cmd-arc is-up" : "cmd-arc"}
+                d={slice.d}
+                fill={slice.color}
+                pointerEvents="none"
+                style={{
+                  transform: active === index ? `translate(${slice.tx * 12}px, ${slice.ty * 12}px)` : "translate(0, 0)",
+                }}
+              />
+              <path
+                className="cmd-arc-hit"
+                d={slice.d}
+                fill="transparent"
+                onPointerEnter={() => onActive(index)}
+                onPointerLeave={() => onActive(null)}
+              />
+            </g>
+          ))}
+        </svg>
+      </div>
+      <div className="cmd-donut-label">
         <strong>{centerValue}</strong>
         <span>{centerLabel}</span>
       </div>
@@ -48,7 +124,9 @@ export default function Overview() {
   const [selected, setSelected] = useState(4);
   const [tableFilter, setTableFilter] = useState<"all" | PersonnelStatus>("all");
   const [tableQuery, setTableQuery] = useState("");
-  const [assetTab, setAssetTab] = useState<"weapons" | "vehicles" | "infra">("weapons");
+  const [page, setPage] = useState(1);
+  const [healthHover, setHealthHover] = useState<number | null>(null);
+  const pageSize = 6;
 
   const tableRows = useMemo(() => {
     return personnel.filter((person) => {
@@ -59,6 +137,12 @@ export default function Overview() {
     });
   }, [tableFilter, tableQuery]);
 
+  const pageCount = Math.max(1, Math.ceil(tableRows.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageRows = tableRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const rangeStart = tableRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, tableRows.length);
+
   return (
     <div className="cmd-page">
       <header className="cmd-head">
@@ -66,48 +150,31 @@ export default function Overview() {
           <h1>Command Overview</h1>
           <p>Real-time overview of all personnel, weapons, and operational assets.</p>
         </div>
-        <div className="cmd-head-side">
-          <button type="button" className="cmd-op-pill">
-            <i />
-            Operation Alpha — Live Operation
-            <Icon name="chevron" size={13} />
-          </button>
-          <div className="cmd-weather">
-            <Icon name="sun" size={16} />
-            <div>
-              <strong>28°C · Partly Cloudy</strong>
-              <small>Wind 12 km/h · Humidity 68%</small>
-            </div>
-          </div>
-        </div>
       </header>
 
       <section className="cmd-stats">
         {commandStats.map((stat) => (
           <article key={stat.label} className={`cmd-stat ${stat.tone}`}>
-            <div className="cmd-stat-top">
-              <span className="cmd-stat-icon">
-                <Icon name={stat.icon} size={15} />
+            {stat.ring != null ? (
+              <span className="cmd-ring-wrap">
+                <i
+                  className="cmd-ring"
+                  style={{ background: `conic-gradient(#34d399 ${stat.ring}%, rgba(52, 211, 153, 0.18) 0)` }}
+                />
+                <Icon name={stat.icon} size={16} />
               </span>
-              {stat.ring != null && (
-                <span className="cmd-ring" style={{ background: `conic-gradient(currentColor ${stat.ring}%, color-mix(in srgb, var(--border) 80%, transparent) 0)` }} />
-              )}
+            ) : (
+              <span className={`cmd-stat-icon ${stat.iconTone ?? "blue"}`}>
+                <Icon name={stat.icon} size={18} />
+              </span>
+            )}
+            <div className="cmd-stat-copy">
+              <small>{stat.label}</small>
+              <strong>{stat.value}</strong>
+              <em>{stat.meta}</em>
             </div>
-            <small>{stat.label}</small>
-            <strong>{stat.value}</strong>
-            <em>{stat.meta}</em>
           </article>
         ))}
-        <article className="cmd-stat weather">
-          <div className="cmd-stat-top">
-            <span className="cmd-stat-icon">
-              <Icon name="sun" size={15} />
-            </span>
-          </div>
-          <small>Weather</small>
-          <strong>28°C</strong>
-          <em>Partly cloudy · 12 km/h</em>
-        </article>
       </section>
 
       <section className="cmd-mid">
@@ -122,9 +189,9 @@ export default function Overview() {
                 <h2>Active Alerts</h2>
                 <p>{activeAlerts.length} requiring attention</p>
               </div>
-              <button type="button" className="more-button">
-                <Icon name="more" />
-              </button>
+              <Link href="/alerts" className="cmd-link">
+                View all <Icon name="arrow" size={13} />
+              </Link>
             </div>
             <div className="cmd-alert-list">
               {activeAlerts.map((alert) => (
@@ -182,7 +249,10 @@ export default function Overview() {
               <Icon name="search" size={14} />
               <input
                 value={tableQuery}
-                onChange={(e) => setTableQuery(e.target.value)}
+                onChange={(e) => {
+                  setTableQuery(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Search personnel..."
               />
             </label>
@@ -199,7 +269,10 @@ export default function Overview() {
                   key={id}
                   type="button"
                   className={tableFilter === id ? "on" : ""}
-                  onClick={() => setTableFilter(id)}
+                  onClick={() => {
+                    setTableFilter(id);
+                    setPage(1);
+                  }}
                 >
                   {label}
                 </button>
@@ -208,6 +281,17 @@ export default function Overview() {
           </div>
           <div className="cmd-table-wrap">
             <table className="cmd-table">
+              <colgroup>
+                <col style={{ width: "72px" }} />
+                <col />
+                <col style={{ width: "118px" }} />
+                <col style={{ width: "72px" }} />
+                <col style={{ width: "48px" }} />
+                <col style={{ width: "64px" }} />
+                <col style={{ width: "72px" }} />
+                <col style={{ width: "84px" }} />
+                <col style={{ width: "36px" }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -222,7 +306,7 @@ export default function Overview() {
                 </tr>
               </thead>
               <tbody>
-                {tableRows.map((person) => (
+                {pageRows.map((person) => (
                   <tr
                     key={person.id}
                     className={personnel.indexOf(person) === selected ? "selected" : ""}
@@ -255,6 +339,24 @@ export default function Overview() {
               </tbody>
             </table>
           </div>
+          <div className="cmd-pager">
+            <span>
+              {rangeStart}–{rangeEnd} of {tableRows.length}
+            </span>
+            <div>
+              <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Previous page">
+                <Icon name="chevron" size={14} />
+              </button>
+              {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+                <button key={number} type="button" className={number === currentPage ? "on" : ""} onClick={() => setPage(number)}>
+                  {number}
+                </button>
+              ))}
+              <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="Next page">
+                <Icon name="chevron" size={14} />
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="panel cmd-health">
@@ -263,93 +365,70 @@ export default function Overview() {
               <h2>Personnel Health Overview</h2>
               <p>Vitals distribution across the force</p>
             </div>
+            <span className="cmd-mini-icon green" aria-hidden="true">
+              <Icon name="heart" size={16} />
+            </span>
           </div>
           <div className="cmd-health-body">
-            <Donut segments={healthBreakdown} centerValue="48" centerLabel="Personnel" />
+            <Donut
+              segments={healthBreakdown}
+              centerValue="48"
+              centerLabel="Personnel"
+              active={healthHover}
+              onActive={setHealthHover}
+            />
             <div className="cmd-legend">
-              {healthBreakdown.map((item) => (
-                <span key={item.label}>
+              {healthBreakdown.map((item, index) => (
+                <span
+                  key={item.label}
+                  className={healthHover === index ? "is-up" : ""}
+                  onPointerEnter={() => setHealthHover(index)}
+                  onPointerLeave={() => setHealthHover(null)}
+                >
                   <i style={{ background: item.color }} />
-                  {item.label}
-                  <b>
-                    {item.value} · {item.pct}
-                  </b>
+                  <em>{item.label}</em>
+                  <b style={{ color: item.color }}>{item.value}</b>
+                  <small>{item.pct}</small>
                 </span>
               ))}
             </div>
           </div>
           <div className="cmd-mini-grid">
             <div>
-              <small>Avg Heart Rate</small>
-              <strong>82 BPM</strong>
+              <span className="cmd-mini-icon green">
+                <Icon name="heart" size={15} />
+              </span>
+              <div>
+                <small>Avg Heart Rate</small>
+                <strong className="green">82 BPM</strong>
+              </div>
             </div>
             <div>
-              <small>Avg Temperature</small>
-              <strong>36.6°C</strong>
+              <span className="cmd-mini-icon amber">
+                <Icon name="thermo" size={15} />
+              </span>
+              <div>
+                <small>Avg Temperature</small>
+                <strong className="amber">36.6°C</strong>
+              </div>
             </div>
             <div>
-              <small>Low Battery</small>
-              <strong>6 Personnel</strong>
+              <span className="cmd-mini-icon amber">
+                <Icon name="bolt" size={15} />
+              </span>
+              <div>
+                <small>Low Battery</small>
+                <strong className="amber">6 Personnel</strong>
+              </div>
             </div>
             <div>
-              <small>Health Alerts</small>
-              <strong>4 Personnel</strong>
-            </div>
-          </div>
-        </div>
-
-        <div className="panel cmd-assets">
-          <div className="panel-header">
-            <div>
-              <h2>Operational Assets</h2>
-              <p>Weapons, vehicles, and infrastructure</p>
-            </div>
-          </div>
-          <div className="cmd-asset-tabs">
-            {(
-              [
-                ["weapons", "Weapons"],
-                ["vehicles", "Vehicles"],
-                ["infra", "Infrastructure"],
-              ] as const
-            ).map(([id, label]) => (
-              <button key={id} type="button" className={assetTab === id ? "on" : ""} onClick={() => setAssetTab(id)}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="cmd-health-body">
-            <Donut
-              segments={assetBreakdown}
-              centerValue={assetTab === "weapons" ? "46" : assetTab === "vehicles" ? "12" : "8"}
-              centerLabel={assetTab === "weapons" ? "Weapons" : assetTab === "vehicles" ? "Vehicles" : "Nodes"}
-            />
-            <div className="cmd-legend">
-              {assetBreakdown.map((item) => (
-                <span key={item.label}>
-                  <i style={{ background: item.color }} />
-                  {item.label}
-                  <b>{item.value}</b>
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="cmd-asset-counters">
-            <div>
-              <strong>43</strong>
-              <small>Connected</small>
-            </div>
-            <div>
-              <strong>2</strong>
-              <small>Disconnected</small>
-            </div>
-            <div>
-              <strong>1</strong>
-              <small>Unassigned</small>
-            </div>
-            <div>
-              <strong>3</strong>
-              <small>Low Battery</small>
+              <span className="cmd-mini-icon red">
+                <Icon name="bell" size={15} />
+              </span>
+              <div>
+                <small>Health Alerts</small>
+                <strong className="red">4 Personnel</strong>
+              </div>
             </div>
           </div>
         </div>

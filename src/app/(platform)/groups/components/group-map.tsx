@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Map as MapLibreMap,
-  ScaleControl,
   setWorkerUrl,
   type GeoJSONSource,
   type Map,
@@ -276,9 +275,8 @@ export default function GroupMap({ group }: { group: GroupInfo }) {
       zoom: 12.6,
       pitch: 20,
       bearing: -4,
-      attributionControl: { compact: true },
+      attributionControl: false,
     });
-    map.addControl(new ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-left");
     mapRef.current = map;
 
     map.on("load", () => {
@@ -326,12 +324,6 @@ export default function GroupMap({ group }: { group: GroupInfo }) {
     <div className="grp-map">
       <div ref={containerRef} className="maplibre-root" />
       <div className="tf-side-tools grp-map-tools">
-        <button type="button" aria-label="Layers">
-          <Icon name="layers" size={15} />
-        </button>
-        <button type="button" aria-label="Settings">
-          <Icon name="settings" size={15} />
-        </button>
         <button type="button" aria-label="Zoom in" onClick={() => mapRef.current?.zoomIn({ duration: 200 })}>
           <Icon name="plus" size={16} />
         </button>

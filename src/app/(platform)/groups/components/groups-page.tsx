@@ -1,33 +1,110 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type PointerEvent } from "react";
 import Icon from "@/components/ui/icon";
 import GroupMap from "./group-map";
 import { groups, groupStats, type GroupId } from "./groups-data";
+
+function ringSlice(start: number, end: number, outer = 68, inner = 46) {
+  const point = (deg: number, radius: number) => {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return [Math.cos(rad) * radius, Math.sin(rad) * radius];
+  };
+  const large = end - start > 180 ? 1 : 0;
+  const [x1, y1] = point(start, outer);
+  const [x2, y2] = point(end, outer);
+  const [x3, y3] = point(end, inner);
+  const [x4, y4] = point(start, inner);
+  return `M ${x1} ${y1} A ${outer} ${outer} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${inner} ${inner} 0 ${large} 0 ${x4} ${y4} Z`;
+}
 
 function Donut({
   segments,
   centerValue,
   centerLabel,
+  active,
+  onActive,
 }: {
-  segments: { value: number; color: string }[];
+  segments: { value: number; color: string; label: string }[];
   centerValue: string;
   centerLabel: string;
+  active: number | null;
+  onActive: (index: number | null) => void;
 }) {
-  const total = segments.reduce((sum, item) => sum + item.value, 0) || 1;
-  let cursor = 0;
-  const stops = segments
-    .map((item) => {
-      const start = (cursor / total) * 100;
-      cursor += item.value;
-      const end = (cursor / total) * 100;
-      return `${item.color} ${start}% ${end}%`;
-    })
-    .join(", ");
+  const slices = useMemo(() => {
+    const total = segments.reduce((sum, item) => sum + item.value, 0) || 1;
+    let cursor = 0;
+    return segments.map((item) => {
+      const span = (item.value / total) * 360;
+      const start = cursor;
+      cursor += span;
+      const pad = span > 10 ? 0.7 : 0.15;
+      const mid = ((start + span / 2 - 90) * Math.PI) / 180;
+      return {
+        ...item,
+        d: ringSlice(start + pad, Math.max(start + pad + 0.4, start + span - pad)),
+        tx: Math.cos(mid),
+        ty: Math.sin(mid),
+      };
+    });
+  }, [segments]);
+  const [angle, setAngle] = useState(0);
+  const drag = useRef<{ x: number; a: number } | null>(null);
+
+  function onPointerDown(event: PointerEvent<HTMLDivElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { x: event.clientX, a: angle };
+  }
+
+  function onPointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!drag.current) return;
+    setAngle(drag.current.a + (event.clientX - drag.current.x) * 0.6);
+  }
+
+  function onPointerUp() {
+    drag.current = null;
+  }
 
   return (
-    <div className="cmd-donut grp-donut" style={{ background: `conic-gradient(${stops})` }}>
-      <div>
+    <div
+      className="cmd-donut-stage"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      role="img"
+      aria-label={`${centerValue} ${centerLabel}. Drag to rotate.`}
+    >
+      <div className="cmd-donut-spin" style={{ transform: `rotate(${angle}deg)` }}>
+        <svg className="cmd-donut-svg" viewBox="-84 -84 168 168">
+          <g className="cmd-donut-depth" transform="translate(0 6)">
+            {slices.map((slice) => (
+              <path key={slice.label} d={slice.d} fill={slice.color} />
+            ))}
+          </g>
+          {slices.map((slice, index) => (
+            <g key={slice.label}>
+              <path
+                className={active === index ? "cmd-arc is-up" : "cmd-arc"}
+                d={slice.d}
+                fill={slice.color}
+                pointerEvents="none"
+                style={{
+                  transform: active === index ? `translate(${slice.tx * 12}px, ${slice.ty * 12}px)` : "translate(0, 0)",
+                }}
+              />
+              <path
+                className="cmd-arc-hit"
+                d={slice.d}
+                fill="transparent"
+                onPointerEnter={() => onActive(index)}
+                onPointerLeave={() => onActive(null)}
+              />
+            </g>
+          ))}
+        </svg>
+      </div>
+      <div className="cmd-donut-label">
         <strong>{centerValue}</strong>
         <span>{centerLabel}</span>
       </div>
@@ -38,7 +115,7 @@ function Donut({
 export default function GroupsPage() {
   const [selectedId, setSelectedId] = useState<GroupId>("alpha");
   const [query, setQuery] = useState("");
-  const [assetTab, setAssetTab] = useState<"weapons" | "vehicles" | "infra">("weapons");
+  const [healthHover, setHealthHover] = useState<number | null>(null);
 
   const group = groups.find((item) => item.id === selectedId) ?? groups[0];
   const stats = groupStats(group);
@@ -79,10 +156,6 @@ export default function GroupsPage() {
           <h1>Groups</h1>
           <p>Manage and monitor operational groups, their personnel, assets, and mission status.</p>
         </div>
-        <button type="button" className="grp-create">
-          <Icon name="plus" size={15} />
-          Create Group
-        </button>
       </header>
 
       <div className="grp-selector">
@@ -101,7 +174,18 @@ export default function GroupsPage() {
               <div>
                 <strong>{item.name}</strong>
                 <small>
-                  {s.personnel} Personnel · {s.online} Online · {s.alerts} Alert · {s.weapons} Weapons
+                  <span className="personnel">
+                    <b>{s.personnel}</b> Personnel
+                  </span>
+                  <span className="online">
+                    <b>{s.online}</b> Online
+                  </span>
+                  <span className="alert">
+                    <b>{s.alerts}</b> Alert
+                  </span>
+                  <span className="weapons">
+                    <b>{s.weapons}</b> Weapons
+                  </span>
                 </small>
               </div>
             </button>
@@ -228,11 +312,6 @@ export default function GroupsPage() {
                   <small>{group.callSign}</small>
                 </div>
               </div>
-              <p>{group.brief}</p>
-            </div>
-
-            <div className="panel grp-status">
-              <h3>Group Status</h3>
               <div className="grp-status-grid">
                 <div>
                   <Icon name="users" size={14} />
@@ -266,35 +345,6 @@ export default function GroupsPage() {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="grp-side-mid">
-            <div className="panel grp-mission">
-              <h3>Mission Details</h3>
-              <dl>
-                <div>
-                  <dt>Status</dt>
-                  <dd>
-                    <span className="cmd-status online">
-                      <i />
-                      {group.missionStatus}
-                    </span>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Start Time</dt>
-                  <dd>{group.startTime}</dd>
-                </div>
-                <div>
-                  <dt>Est. Duration</dt>
-                  <dd>{group.duration}</dd>
-                </div>
-                <div>
-                  <dt>Area of Operation</dt>
-                  <dd>{group.area}</dd>
-                </div>
-              </dl>
-            </div>
 
             <div className="panel grp-health">
               <h3>Group Health</h3>
@@ -303,108 +353,45 @@ export default function GroupsPage() {
                   segments={health}
                   centerValue={String(group.members.length)}
                   centerLabel="Personnel"
+                  active={healthHover}
+                  onActive={setHealthHover}
                 />
-                <div className="cmd-legend">
-                  {health.map((item) => (
-                    <span key={item.label}>
+                <div className="grp-health-legend">
+                  {health.map((item, index) => (
+                    <span
+                      key={item.label}
+                      className={healthHover === index ? "is-up" : ""}
+                      onPointerEnter={() => setHealthHover(index)}
+                      onPointerLeave={() => setHealthHover(null)}
+                    >
                       <i style={{ background: item.color }} />
-                      {item.label}
-                      <b>{item.value}</b>
+                      <em>{item.label}</em>
+                      <b style={{ color: item.color }}>{item.value}</b>
                     </span>
                   ))}
                 </div>
               </div>
               <div className="grp-vitals">
                 <div>
-                  <small>Avg Heart Rate</small>
-                  <strong>{avgHr} BPM</strong>
-                  <em>Normal</em>
+                  <span className="cmd-mini-icon green">
+                    <Icon name="heart" size={15} />
+                  </span>
+                  <div>
+                    <small>Avg Heart Rate</small>
+                    <strong className="hr">{avgHr} BPM</strong>
+                    <em>Normal</em>
+                  </div>
                 </div>
                 <div>
-                  <small>Avg Temperature</small>
-                  <strong>{avgTemp} °C</strong>
-                  <em>Normal</em>
+                  <span className="cmd-mini-icon amber">
+                    <Icon name="thermo" size={15} />
+                  </span>
+                  <div>
+                    <small>Avg Temperature</small>
+                    <strong className="temp">{avgTemp} °C</strong>
+                    <em>Normal</em>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grp-side-bottom">
-            <div className="panel grp-assets">
-              <div className="grp-assets-head">
-                <h3>Group Assets ({group.weapons.length})</h3>
-                <div className="cmd-asset-tabs">
-                  {(
-                    [
-                      ["weapons", `Weapons (${group.weapons.length})`],
-                      ["vehicles", "Vehicles (2)"],
-                      ["infra", "Infrastructure (1)"],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      className={assetTab === id ? "on" : ""}
-                      onClick={() => setAssetTab(id)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="cmd-table-wrap">
-                <table className="cmd-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Type</th>
-                      <th>Status</th>
-                      <th>Assigned To</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(assetTab === "weapons" ? group.weapons : []).map((weapon) => (
-                      <tr key={weapon.id}>
-                        <td>
-                          <code>{weapon.id}</code>
-                        </td>
-                        <td>{weapon.type}</td>
-                        <td>
-                          <span className={`cmd-status ${weapon.status === "connected" ? "online" : weapon.status === "disconnected" ? "critical" : "offline"}`}>
-                            <i />
-                            {weapon.status[0].toUpperCase() + weapon.status.slice(1)}
-                          </span>
-                        </td>
-                        <td>
-                          <button type="button" className="grp-weapon-link">
-                            {weapon.assignedTo}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {assetTab !== "weapons" && (
-                      <tr>
-                        <td colSpan={4} style={{ textAlign: "center", color: "var(--text-muted)" }}>
-                          No {assetTab} assigned to this group.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="panel grp-activity">
-              <h3>Group Activity</h3>
-              <div className="grp-activity-list">
-                {group.activity.map((item) => (
-                  <article key={item.time + item.text} className={`cmd-feed-item ${item.tone}`}>
-                    <time>{item.time}</time>
-                    <div>
-                      <strong>{item.text}</strong>
-                    </div>
-                  </article>
-                ))}
               </div>
             </div>
           </div>

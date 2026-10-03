@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Map as MapLibreMap,
-  ScaleControl,
   setWorkerUrl,
   type Map,
   type MapLayerMouseEvent,
@@ -96,7 +95,6 @@ export default function TraxonMap({
       online: personnel.filter((p) => p.status === "online").length,
       alert: personnel.filter((p) => p.status === "warning" || p.status === "critical").length,
       offline: personnel.filter((p) => p.status === "offline").length,
-      total: personnel.length,
     }),
     [],
   );
@@ -113,10 +111,9 @@ export default function TraxonMap({
       pitch: MAP_CAMERA.pitch,
       bearing: MAP_CAMERA.bearing,
       maxPitch: MAP_CAMERA.maxPitch,
-      attributionControl: { compact: true },
+      attributionControl: false,
     });
 
-    map.addControl(new ScaleControl({ maxWidth: 110, unit: "metric" }), "bottom-left");
     mapRef.current = map;
 
     map.on("load", () => {
@@ -286,10 +283,6 @@ export default function TraxonMap({
     <div className="map-canvas cmd-map tf-map">
       <div className="tf-topbar">
         <div className="tf-top-left">
-          <button type="button" className="cmd-map-select">
-            All Personnel ({counts.total})
-            <Icon name="chevron" size={13} />
-          </button>
           <div className="tf-status-pills">
             <button type="button" className={`tf-pill online${filter === "online" ? " on" : ""}`} onClick={() => setFilter(filter === "online" ? "all" : "online")}>
               <i /> Online {counts.online}
@@ -331,24 +324,9 @@ export default function TraxonMap({
               </div>
             )}
           </div>
-          <button type="button" className="tf-icon-btn" aria-label="Fullscreen" onClick={toggleFullscreen}>
+          <button type="button" className="cmd-map-chip" aria-label="Fullscreen" onClick={toggleFullscreen}>
             <Icon name="monitor" size={15} />
-          </button>
-          <button
-            type="button"
-            className="tf-icon-btn"
-            aria-label="Recenter"
-            onClick={() =>
-              mapRef.current?.easeTo({
-                center: MAP_CAMERA.center,
-                zoom: MAP_CAMERA.zoom,
-                pitch: MAP_CAMERA.pitch,
-                bearing: MAP_CAMERA.bearing,
-                duration: 500,
-              })
-            }
-          >
-            <Icon name="pin" size={15} />
+            Fullscreen
           </button>
         </div>
       </div>
@@ -398,17 +376,11 @@ export default function TraxonMap({
       )}
 
       <div className="tf-side-tools">
-        <button type="button" aria-label="Settings">
-          <Icon name="settings" size={16} />
-        </button>
         <button type="button" aria-label="Zoom in" onClick={() => mapRef.current?.zoomIn({ duration: 200 })}>
           <Icon name="plus" size={17} />
         </button>
         <button type="button" aria-label="Zoom out" onClick={() => mapRef.current?.zoomOut({ duration: 200 })}>
           −
-        </button>
-        <button type="button" aria-label="Layers" onClick={() => setLayersOpen((v) => !v)}>
-          <Icon name="layers" size={16} />
         </button>
       </div>
 

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Map as MapLibreMap,
-  ScaleControl,
   setWorkerUrl,
   type GeoJSONSource,
   type Map,
@@ -200,9 +199,8 @@ export default function WeaponMap({ filter, selectedId, onSelect }: Props) {
       zoom: 12.4,
       pitch: 18,
       bearing: -3,
-      attributionControl: { compact: true },
+      attributionControl: false,
     });
-    map.addControl(new ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-left");
     mapRef.current = map;
 
     const onClick = (e: MapLayerMouseEvent) => {
@@ -267,12 +265,6 @@ export default function WeaponMap({ filter, selectedId, onSelect }: Props) {
         </button>
       </div>
       <div className="tf-side-tools wpn-map-tools">
-        <button type="button" aria-label="Settings">
-          <Icon name="settings" size={15} />
-        </button>
-        <button type="button" aria-label="Target">
-          <Icon name="crosshair" size={15} />
-        </button>
         <button type="button" aria-label="Zoom in" onClick={() => mapRef.current?.zoomIn({ duration: 200 })}>
           <Icon name="plus" size={16} />
         </button>
