@@ -33,6 +33,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Alerts", icon: "bell", href: "/alerts" },
       { label: "History", icon: "clock", href: "/groups/history" },
+      { label: "Geofences", icon: "shield", href: "/groups/geofence" },
     ],
   },
   {

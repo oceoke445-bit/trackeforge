@@ -1,5 +1,5 @@
-import PlaceholderPage from "@/components/PlaceholderPage";
+import { redirect } from "next/navigation";
 
 export default function GeofencesPage() {
-  return <PlaceholderPage title="Geofences" />;
+  redirect("/groups/geofence");
 }

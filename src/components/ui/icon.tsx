@@ -48,7 +48,10 @@ export type IconName =
   | "building"
   | "crosshair"
   | "compass"
-  | "thermo";
+  | "thermo"
+  | "copy"
+  | "pause"
+  | "warn";
 
 const paths: Record<IconName, ReactNode> = {
   grid: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
@@ -99,6 +102,9 @@ const paths: Record<IconName, ReactNode> = {
   crosshair: <><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="2"/></>,
   compass: <><circle cx="12" cy="12" r="9"/><path d="m12 4 2.5 7.5L12 14l-2.5-2.5Z"/><path d="m12 20-2.5-7.5L12 10l2.5 2.5Z"/></>,
   thermo: <><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/><path d="M12 13v3"/></>,
+  copy: <><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></>,
+  pause: <><circle cx="12" cy="12" r="9"/><path d="M10 8v8M14 8v8"/></>,
+  warn: <><path d="m12 3 9 16H3Z"/><path d="M12 10v4M12 17h.01"/></>,
 };
 
 export default function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
