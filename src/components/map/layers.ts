@@ -29,14 +29,14 @@ export type LayerGroupId =
 
 export const LAYER_GROUPS: { id: LayerGroupId; label: string; defaultOn: boolean; layers: string[] }[] = [
   { id: "personnel", label: "Personnel", defaultOn: true, layers: ["personnel-halo", "personnel-status", "personnel-icons"] },
-  { id: "weapons", label: "Weapons", defaultOn: false, layers: ["weapons-status", "weapons-icons"] },
-  { id: "vehicles", label: "Vehicles", defaultOn: true, layers: ["vehicles-halo", "vehicles-status", "vehicles-icons"] },
+  { id: "weapons", label: "Weapons", defaultOn: true, layers: ["weapons-status", "weapons-icons"] },
+  { id: "vehicles", label: "Vehicles", defaultOn: false, layers: ["vehicles-halo", "vehicles-status", "vehicles-icons"] },
   { id: "gateways", label: "Gateways", defaultOn: true, layers: ["gateways-halo", "gateways-status", "gateways-icons"] },
-  { id: "alerts", label: "Alerts", defaultOn: true, layers: ["alerts-ring"] },
-  { id: "restricted", label: "Restricted Areas", defaultOn: true, layers: ["restricted-fill", "restricted-outline", "restricted-label"] },
+  { id: "alerts", label: "Alerts", defaultOn: false, layers: ["alerts-ring"] },
+  { id: "restricted", label: "Restricted Areas", defaultOn: false, layers: ["restricted-fill", "restricted-outline", "restricted-label"] },
   { id: "operation", label: "Operation Boundary", defaultOn: false, layers: ["operation-fill", "operation-outline"] },
-  { id: "coverage", label: "Blue Zone", defaultOn: true, layers: ["coverage-fill", "coverage-outline"] },
-  { id: "geofence", label: "Green Zone", defaultOn: true, layers: ["geofence-fill", "geofence-outline"] },
+  { id: "coverage", label: "Blue Zone", defaultOn: false, layers: ["coverage-fill", "coverage-outline"] },
+  { id: "geofence", label: "Green Zone", defaultOn: false, layers: ["geofence-fill", "geofence-outline"] },
   { id: "tracks", label: "Personnel Tracks", defaultOn: false, layers: ["personnel-track", "squad-track"] },
   { id: "terrain", label: "Terrain / Hillshade", defaultOn: true, layers: ["terrain-hillshade"] },
 ];
@@ -95,20 +95,6 @@ export function ensureTerrainSource(map: Map) {
     );
   }
 }
-
-const statusColor = [
-  "match",
-  ["get", "status"],
-  "online",
-  "#00D99A",
-  "warning",
-  "#FFB020",
-  "critical",
-  "#FF3B4A",
-  "offline",
-  "#8B9AAF",
-  "#8B9AAF",
-] as const;
 
 export function addOperationalLayers(map: Map) {
   upsertSource(map, "operation-boundary", operationBoundaryGeoJSON);
@@ -290,24 +276,10 @@ export function addOperationalLayers(map: Map) {
     id: "weapons-status",
     type: "circle",
     source: "weapons",
-    layout: { visibility: "none" },
     paint: {
-      "circle-radius": 11,
-      "circle-color": [
-        "match",
-        ["get", "status"],
-        "connected",
-        "#22d3ee",
-        "disconnected",
-        "#FF3B4A",
-        "low_battery",
-        "#FFB020",
-        "unassigned",
-        "#8B9AAF",
-        "#8B9AAF",
-      ],
-      "circle-stroke-color": "rgba(255,255,255,0.8)",
-      "circle-stroke-width": 1.5,
+      "circle-radius": 16,
+      "circle-color": "#000000",
+      "circle-opacity": 0,
     },
   });
   addLayerSafe(map, {
@@ -315,9 +287,24 @@ export function addOperationalLayers(map: Map) {
     type: "symbol",
     source: "weapons",
     layout: {
-      visibility: "none",
-      "icon-image": "weapon-icon",
-      "icon-size": 0.38,
+      "icon-image": [
+        "match",
+        ["get", "status"],
+        "connected",
+        "weapon-mark-connected",
+        "disconnected",
+        "weapon-mark-disconnected",
+        "low_battery",
+        "weapon-mark-low-battery",
+        "low-battery",
+        "weapon-mark-low-battery",
+        "unassigned",
+        "weapon-mark-unassigned",
+        "maintenance",
+        "weapon-mark-maintenance",
+        "weapon-mark-connected",
+      ],
+      "icon-size": 0.58,
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
     },
@@ -335,21 +322,15 @@ export function addOperationalLayers(map: Map) {
     },
   });
 
-  // Personnel
+  // Personnel — pin marker (soldier glyph). Circles stay for hit-testing only.
   addLayerSafe(map, {
     id: "personnel-halo",
     type: "circle",
     source: "personnel",
     paint: {
-      "circle-radius": [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        22,
-        18,
-      ],
-      "circle-color": statusColor as unknown as string,
-      "circle-opacity": 0.3,
-      "circle-blur": 0.4,
+      "circle-radius": 8,
+      "circle-color": "#000000",
+      "circle-opacity": 0,
     },
   });
 
@@ -358,15 +339,9 @@ export function addOperationalLayers(map: Map) {
     type: "circle",
     source: "personnel",
     paint: {
-      "circle-radius": [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        16,
-        14,
-      ],
-      "circle-color": statusColor as unknown as string,
-      "circle-stroke-color": "rgba(255,255,255,0.9)",
-      "circle-stroke-width": 2.2,
+      "circle-radius": 16,
+      "circle-color": "#000000",
+      "circle-opacity": 0,
     },
   });
 
@@ -375,8 +350,26 @@ export function addOperationalLayers(map: Map) {
     type: "symbol",
     source: "personnel",
     layout: {
-      "icon-image": "personnel-bell",
-      "icon-size": 0.4,
+      "icon-image": [
+        "case",
+        ["==", ["get", "role"], "danru"],
+        "personnel-pin-leader",
+        [
+          "match",
+          ["get", "status"],
+          "online",
+          "personnel-pin-online",
+          "warning",
+          "personnel-pin-warning",
+          "critical",
+          "personnel-pin-critical",
+          "offline",
+          "personnel-pin-offline",
+          "personnel-pin-offline",
+        ],
+      ],
+      "icon-size": 0.52,
+      "icon-anchor": "bottom",
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
     },

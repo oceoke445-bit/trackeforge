@@ -1,5 +1,5 @@
-import PlaceholderPage from "@/components/PlaceholderPage";
+import AlertsPage from "./components/alerts-page";
 
-export default function AlertsPage() {
-  return <PlaceholderPage title="Alerts" />;
+export default function AlertsRoute() {
+  return <AlertsPage />;
 }

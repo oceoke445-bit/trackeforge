@@ -167,7 +167,144 @@ function drawLongGun(ctx: CanvasRenderingContext2D, size: number) {
   ctx.fill();
 }
 
+function drawSoldierPin(ctx: CanvasRenderingContext2D, size: number, color: string) {
+  ctx.clearRect(0, 0, size, size);
+  const cx = size * 0.5;
+  const cy = size * 0.36;
+  const r = size * 0.26;
+
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  const glow = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r * 2.15);
+  glow.addColorStop(0, color);
+  glow.addColorStop(0.45, color);
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 2.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.38, cy + r * 0.62);
+  ctx.lineTo(cx + r * 0.38, cy + r * 0.62);
+  ctx.lineTo(cx, size * 0.96);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(255,255,255,0.95)";
+  ctx.lineWidth = Math.max(2, size * 0.028);
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(cx, cy - r * 0.22, r * 0.28, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.lineTo(cx + r * 0.22, cy - r * 0.16);
+  ctx.lineTo(cx - r * 0.22, cy - r * 0.16);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - r * 0.12, r * 0.4, r * 0.09, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.46, cy + r * 0.58);
+  ctx.quadraticCurveTo(cx - r * 0.5, cy + r * 0.16, cx - r * 0.16, cy + r * 0.08);
+  ctx.lineTo(cx + r * 0.16, cy + r * 0.08);
+  ctx.quadraticCurveTo(cx + r * 0.5, cy + r * 0.16, cx + r * 0.46, cy + r * 0.58);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.1, cy + r * 0.1);
+  ctx.lineTo(cx, cy + r * 0.28);
+  ctx.lineTo(cx + r * 0.1, cy + r * 0.1);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawWeaponBadge(ctx: CanvasRenderingContext2D, size: number, color: string) {
+  ctx.clearRect(0, 0, size, size);
+  const cx = size * 0.5;
+  const cy = size * 0.5;
+  const r = size * 0.4;
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.95)";
+  ctx.lineWidth = Math.max(2, size * 0.04);
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  const x = (n: number) => size * n;
+  const y = (n: number) => size * n;
+
+  ctx.beginPath();
+  ctx.moveTo(x(0.22), y(0.44));
+  ctx.lineTo(x(0.34), y(0.44));
+  ctx.lineTo(x(0.36), y(0.5));
+  ctx.lineTo(x(0.32), y(0.56));
+  ctx.lineTo(x(0.22), y(0.58));
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillRect(x(0.32), y(0.46), x(0.4), y(0.08));
+  ctx.fillRect(x(0.68), y(0.44), x(0.08), y(0.12));
+
+  ctx.beginPath();
+  ctx.moveTo(x(0.4), y(0.54));
+  ctx.lineTo(x(0.48), y(0.54));
+  ctx.lineTo(x(0.5), y(0.72));
+  ctx.lineTo(x(0.4), y(0.72));
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(x(0.32), y(0.54));
+  ctx.lineTo(x(0.38), y(0.54));
+  ctx.lineTo(x(0.36), y(0.7));
+  ctx.lineTo(x(0.3), y(0.68));
+  ctx.closePath();
+  ctx.fill();
+}
+
+const WEAPON_MARK_COLORS = {
+  "weapon-mark-connected": "#3B82F6",
+  "weapon-mark-disconnected": "#FF3B4A",
+  "weapon-mark-unassigned": "#8B9AAF",
+  "weapon-mark-low-battery": "#FFB020",
+  "weapon-mark-maintenance": "#22D3EE",
+} as const;
+
+const PERSONNEL_PIN_COLORS = {
+  "personnel-pin-online": "#00D99A",
+  "personnel-pin-warning": "#FFB020",
+  "personnel-pin-critical": "#FF3B4A",
+  "personnel-pin-offline": "#8B9AAF",
+  "personnel-pin-leader": "#3B82F6",
+} as const;
+
 export function registerMapIcons(map: Map) {
+  for (const [id, color] of Object.entries(PERSONNEL_PIN_COLORS)) {
+    upsertImage(map, id, makeIcon((ctx, size) => drawSoldierPin(ctx, size, color), 128));
+  }
+  for (const [id, color] of Object.entries(WEAPON_MARK_COLORS)) {
+    upsertImage(map, id, makeIcon((ctx, size) => drawWeaponBadge(ctx, size, color), 96));
+  }
+
   if (!map.hasImage("personnel-bell")) {
     map.addImage(
       "personnel-bell",

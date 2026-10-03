@@ -1,22 +1,29 @@
 import { personnel } from "@/app/(platform)/components/command-data";
 
+const danruSquads = new Set<string>();
+
 export const personnelGeoJSON: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
-  features: personnel.map((person) => ({
-    type: "Feature",
-    geometry: { type: "Point", coordinates: [person.lng, person.lat] },
-    properties: {
-      id: person.id,
-      name: person.name,
-      status: person.status,
-      squad: person.squad,
-      hr: person.hr,
-      temperature: person.temp,
-      battery: person.battery,
-      lastSeen: person.lastSeen,
-      alert: person.status === "critical" || person.status === "warning",
-    },
-  })),
+  features: personnel.map((person) => {
+    const danru = !danruSquads.has(person.squad);
+    danruSquads.add(person.squad);
+    return {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [person.lng, person.lat] },
+      properties: {
+        id: person.id,
+        name: person.name,
+        status: person.status,
+        squad: person.squad,
+        role: danru ? "danru" : "member",
+        hr: person.hr,
+        temperature: person.temp,
+        battery: person.battery,
+        lastSeen: person.lastSeen,
+        alert: person.status === "critical" || person.status === "warning",
+      },
+    };
+  }),
 };
 
 export const weaponsGeoJSON: GeoJSON.FeatureCollection = {

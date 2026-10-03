@@ -20,20 +20,20 @@ export const navGroups: NavGroup[] = [
       { label: "Weapons", icon: "crosshair", href: "/weapons" },
     ],
   },
-  // {
-  //   label: "Operations",
-  //   items: [
-  //     { label: "Live Tracking", icon: "map", href: "/tracking" },
-  //     { label: "Devices", icon: "cpu", href: "/devices" },
-  //     { label: "Vehicles", icon: "truck", href: "/vehicles" },
-  //     { label: "Assets", icon: "box", href: "/assets" },
-  //     { label: "Geofences", icon: "shield", href: "/geofences" },
-  //     { label: "Alerts", icon: "bell", href: "/alerts" },
-  //     { label: "Trips & History", icon: "route", href: "/trips" },
-  //     { label: "Analytics", icon: "chart", href: "/analytics" },
-  //     { label: "Reports", icon: "file", href: "/reports" },
-  //   ],
-  // },
+  {
+    label: "Communication",
+    items: [
+      { label: "LoRa Mesh", icon: "signal", href: "/lora-mesh" },
+      { label: "Gateways", icon: "server", href: "/gateways" },
+    ],
+  },
+  {
+    label: "Monitoring",
+    items: [
+      { label: "Alerts", icon: "bell", href: "/alerts" },
+    ],
+  },
+  
   {
     label: "Administration",
     items: [

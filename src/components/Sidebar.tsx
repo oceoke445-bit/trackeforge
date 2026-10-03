@@ -30,7 +30,7 @@ export default function Sidebar({
                 <Link key={item.href} href={item.href} className={active ? "active" : ""}>
                   <Icon name={item.icon} />
                   <span>{item.label}</span>
-                  {item.label === "Alerts" && <b>24</b>}
+                  {item.label === "Alerts" && <b>36</b>}
                 </Link>
               );
             })}

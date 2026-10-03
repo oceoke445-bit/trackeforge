@@ -315,7 +315,7 @@ export default function TraxonMap({
             {layersOpen && (
               <div className="tf-layers-panel" role="dialog" aria-label="Map layers">
                 <strong>MAP LAYERS</strong>
-                {LAYER_GROUPS.map((group) => (
+                {LAYER_GROUPS.filter((group) => group.id === "personnel" || group.id === "weapons" || group.id === "gateways").map((group) => (
                   <label key={group.id}>
                     <input type="checkbox" checked={visibility[group.id]} onChange={() => toggleGroup(group.id)} />
                     <span>{group.label}</span>

@@ -43,6 +43,8 @@ export default function NotificationsPage() {
   const [statusMap, setStatusMap] = useState<Record<string, NoticeStatus>>({});
   const [ready, setReady] = useState(false);
   const [detailOpen, setDetailOpen] = useState(true);
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
 
   useEffect(() => {
     const reads = loadReadIds();
@@ -67,6 +69,13 @@ export default function NotificationsPage() {
         .includes(q);
     });
   }, [filter, category, query, readIds, statusMap]);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const rangeStart = rows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, rows.length);
+  const allPageChecked = pageRows.length > 0 && pageRows.every((row) => checked.has(row.id));
 
   const markRead = (ids: string[]) => {
     setReadIds((prev) => {
@@ -110,8 +119,12 @@ export default function NotificationsPage() {
   };
 
   const toggleAll = () => {
-    if (checked.size === rows.length) setChecked(new Set());
-    else setChecked(new Set(rows.map((r) => r.id)));
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (allPageChecked) pageRows.forEach((row) => next.delete(row.id));
+      else pageRows.forEach((row) => next.add(row.id));
+      return next;
+    });
   };
 
   const statusOf = (id: string) => getNoticeStatus(id, readIds, statusMap);
@@ -187,7 +200,10 @@ export default function NotificationsPage() {
                   key={item.id}
                   type="button"
                   className={filter === item.id ? "on" : ""}
-                  onClick={() => setFilter(item.id)}
+                  onClick={() => {
+                    setFilter(item.id);
+                    setPage(1);
+                  }}
                 >
                   {item.label} ({item.count})
                 </button>
@@ -198,11 +214,21 @@ export default function NotificationsPage() {
                 <Icon name="search" size={14} />
                 <input
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setPage(1);
+                  }}
                   placeholder="Search notifications..."
                 />
               </label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category">
+              <select
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setPage(1);
+                }}
+                aria-label="Category"
+              >
                 <option value="all">All Categories</option>
                 <option value="personnel">Personnel</option>
                 <option value="weapon">Weapons</option>
@@ -225,9 +251,9 @@ export default function NotificationsPage() {
                   <th>
                     <input
                       type="checkbox"
-                      checked={rows.length > 0 && checked.size === rows.length}
+                      checked={allPageChecked}
                       onChange={toggleAll}
-                      aria-label="Select all"
+                      aria-label="Select all on this page"
                     />
                   </th>
                   <th>Type</th>
@@ -239,7 +265,7 @@ export default function NotificationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((notice) => {
+                {pageRows.map((notice) => {
                   const status = statusOf(notice.id);
                   const active = selected?.id === notice.id && detailOpen;
                   return (
@@ -301,6 +327,24 @@ export default function NotificationsPage() {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="cmd-pager">
+            <span>
+              {rangeStart}–{rangeEnd} of {rows.length}
+            </span>
+            <div>
+              <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Previous page">
+                <Icon name="chevron" size={14} />
+              </button>
+              {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+                <button key={number} type="button" className={number === currentPage ? "on" : ""} onClick={() => setPage(number)}>
+                  {number}
+                </button>
+              ))}
+              <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="Next page">
+                <Icon name="chevron" size={14} />
+              </button>
+            </div>
           </div>
         </section>
 

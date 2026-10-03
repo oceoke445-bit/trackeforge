@@ -207,12 +207,6 @@ export default function GroupsPage() {
                 </p>
               </div>
               <div className="grp-map-actions">
-                <button type="button" className="secondary">
-                  View on Full Map
-                </button>
-                <button type="button" className="secondary">
-                  <Icon name="layers" size={14} /> Map Layers
-                </button>
                 <button type="button" className="tf-icon-btn" aria-label="Fullscreen">
                   <Icon name="monitor" size={15} />
                 </button>

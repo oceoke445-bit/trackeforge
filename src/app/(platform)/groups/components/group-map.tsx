@@ -45,30 +45,14 @@ const RESTRICTED: GeoJSON.FeatureCollection = {
 function toPersonnelGeoJSON(group: GroupInfo): GeoJSON.FeatureCollection {
   return {
     type: "FeatureCollection",
-    features: group.members.map((member) => ({
+    features: group.members.map((member, index) => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: [member.lng, member.lat] },
       properties: {
         id: member.id,
         status: member.status,
         name: member.name,
-      },
-    })),
-  };
-}
-
-function toWeaponGeoJSON(group: GroupInfo): GeoJSON.FeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: group.members.slice(0, Math.min(4, group.weapons.length)).map((member, i) => ({
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: [member.lng + 0.003, member.lat - 0.002],
-      },
-      properties: {
-        id: group.weapons[i]?.id ?? `WPN-${i}`,
-        status: group.weapons[i]?.status ?? "connected",
+        role: index === 0 ? "danru" : "member",
       },
     })),
   };
@@ -92,7 +76,6 @@ function hydrate(map: Map, group: GroupInfo) {
 
   const area = toAreaGeoJSON(group);
   const personnel = toPersonnelGeoJSON(group);
-  const weapons = toWeaponGeoJSON(group);
 
   const upsert = (id: string, data: GeoJSON.FeatureCollection) => {
     const source = map.getSource(id) as GeoJSONSource | undefined;
@@ -103,7 +86,6 @@ function hydrate(map: Map, group: GroupInfo) {
   upsert("group-area", area);
   upsert("group-restricted", RESTRICTED);
   upsert("group-personnel", personnel);
-  upsert("group-weapons", weapons);
 
   if (!map.getLayer("group-area-fill")) {
     map.addLayer({
@@ -157,101 +139,29 @@ function hydrate(map: Map, group: GroupInfo) {
       paint: { "text-color": "#fff", "text-halo-color": "#B91C1C", "text-halo-width": 2 },
     });
     map.addLayer({
-      id: "group-personnel-halo",
-      type: "circle",
-      source: "group-personnel",
-      paint: {
-        "circle-radius": 16,
-        "circle-color": [
-          "match",
-          ["get", "status"],
-          "online",
-          "#00D99A",
-          "warning",
-          "#FFB020",
-          "critical",
-          "#FF3B4A",
-          "#8B9AAF",
-        ],
-        "circle-opacity": 0.28,
-        "circle-blur": 0.35,
-      },
-    });
-    map.addLayer({
-      id: "group-personnel-status",
-      type: "circle",
-      source: "group-personnel",
-      paint: {
-        "circle-radius": 13,
-        "circle-color": [
-          "match",
-          ["get", "status"],
-          "online",
-          "#00D99A",
-          "warning",
-          "#FFB020",
-          "critical",
-          "#FF3B4A",
-          "#8B9AAF",
-        ],
-        "circle-stroke-color": "rgba(255,255,255,0.9)",
-        "circle-stroke-width": 2,
-      },
-    });
-    map.addLayer({
       id: "group-personnel-icons",
       type: "symbol",
       source: "group-personnel",
       layout: {
-        "icon-image": "personnel-bell",
-        "icon-size": 0.38,
+        "icon-image": [
+          "match",
+          ["get", "role"],
+          "danru",
+          "personnel-pin-leader",
+          "personnel-pin-online",
+        ],
+        "icon-size": 0.48,
+        "icon-anchor": "bottom",
         "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
         "text-field": ["get", "id"],
-        "text-offset": [0, 1.5],
+        "text-offset": [0, 0.4],
         "text-size": 10,
         "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
         "text-allow-overlap": true,
       },
       paint: {
         "text-color": "#e8eef6",
-        "text-halo-color": "rgba(0,0,0,0.7)",
-        "text-halo-width": 1,
-      },
-    });
-    map.addLayer({
-      id: "group-weapons-status",
-      type: "circle",
-      source: "group-weapons",
-      paint: {
-        "circle-radius": 11,
-        "circle-color": [
-          "match",
-          ["get", "status"],
-          "connected",
-          "#3B82F6",
-          "disconnected",
-          "#FF3B4A",
-          "#8B9AAF",
-        ],
-        "circle-stroke-color": "#fff",
-        "circle-stroke-width": 1.5,
-      },
-    });
-    map.addLayer({
-      id: "group-weapons-icons",
-      type: "symbol",
-      source: "group-weapons",
-      layout: {
-        "icon-image": "weapon-icon",
-        "icon-size": 0.36,
-        "icon-allow-overlap": true,
-        "text-field": ["get", "id"],
-        "text-offset": [0, 1.45],
-        "text-size": 9,
-        "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
-      },
-      paint: {
-        "text-color": "#dbeafe",
         "text-halo-color": "rgba(0,0,0,0.7)",
         "text-halo-width": 1,
       },

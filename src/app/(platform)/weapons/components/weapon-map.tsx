@@ -51,25 +51,7 @@ function toWeaponsGeoJSON(list: WeaponAsset[]): GeoJSON.FeatureCollection {
   };
 }
 
-function statusColorExpr() {
-  return [
-    "match",
-    ["get", "status"],
-    "connected",
-    "#3B82F6",
-    "disconnected",
-    "#FF3B4A",
-    "unassigned",
-    "#8B9AAF",
-    "low-battery",
-    "#FFB020",
-    "maintenance",
-    "#22D3EE",
-    "#3B82F6",
-  ] as const;
-}
-
-function hydrate(map: Map, list: WeaponAsset[], selectedId: string | null) {
+function hydrate(map: Map, list: WeaponAsset[]) {
   registerMapIcons(map);
 
   const upsert = (id: string, data: GeoJSON.FeatureCollection) => {
@@ -112,10 +94,9 @@ function hydrate(map: Map, list: WeaponAsset[], selectedId: string | null) {
       type: "circle",
       source: "wpn-points",
       paint: {
-        "circle-radius": ["case", ["==", ["get", "id"], selectedId ?? ""], 20, 15],
-        "circle-color": statusColorExpr() as unknown as string,
-        "circle-opacity": 0.28,
-        "circle-blur": 0.35,
+        "circle-radius": 10,
+        "circle-color": "#000000",
+        "circle-opacity": 0,
       },
     });
     map.addLayer({
@@ -123,10 +104,9 @@ function hydrate(map: Map, list: WeaponAsset[], selectedId: string | null) {
       type: "circle",
       source: "wpn-points",
       paint: {
-        "circle-radius": ["case", ["==", ["get", "id"], selectedId ?? ""], 14, 12],
-        "circle-color": statusColorExpr() as unknown as string,
-        "circle-stroke-color": "#fff",
-        "circle-stroke-width": 1.8,
+        "circle-radius": 16,
+        "circle-color": "#000000",
+        "circle-opacity": 0,
       },
     });
     map.addLayer({
@@ -134,8 +114,22 @@ function hydrate(map: Map, list: WeaponAsset[], selectedId: string | null) {
       type: "symbol",
       source: "wpn-points",
       layout: {
-        "icon-image": ["get", "icon"],
-        "icon-size": ["case", ["==", ["get", "id"], selectedId ?? ""], 0.52, 0.46],
+        "icon-image": [
+          "match",
+          ["get", "status"],
+          "connected",
+          "weapon-mark-connected",
+          "disconnected",
+          "weapon-mark-disconnected",
+          "unassigned",
+          "weapon-mark-unassigned",
+          "low-battery",
+          "weapon-mark-low-battery",
+          "maintenance",
+          "weapon-mark-maintenance",
+          "weapon-mark-connected",
+        ],
+        "icon-size": 0.62,
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
         "text-field": ["get", "label"],
@@ -151,24 +145,22 @@ function hydrate(map: Map, list: WeaponAsset[], selectedId: string | null) {
       },
     });
   } else {
-    map.setPaintProperty("wpn-halo", "circle-radius", [
-      "case",
-      ["==", ["get", "id"], selectedId ?? ""],
-      20,
-      15,
+    map.setLayoutProperty("wpn-icons", "icon-image", [
+      "match",
+      ["get", "status"],
+      "connected",
+      "weapon-mark-connected",
+      "disconnected",
+      "weapon-mark-disconnected",
+      "unassigned",
+      "weapon-mark-unassigned",
+      "low-battery",
+      "weapon-mark-low-battery",
+      "maintenance",
+      "weapon-mark-maintenance",
+      "weapon-mark-connected",
     ]);
-    map.setPaintProperty("wpn-circle", "circle-radius", [
-      "case",
-      ["==", ["get", "id"], selectedId ?? ""],
-      14,
-      12,
-    ]);
-    map.setLayoutProperty("wpn-icons", "icon-size", [
-      "case",
-      ["==", ["get", "id"], selectedId ?? ""],
-      0.52,
-      0.46,
-    ]);
+    map.setLayoutProperty("wpn-icons", "icon-size", 0.62);
   }
 }
 
@@ -178,7 +170,7 @@ type Props = {
   onSelect: (id: string) => void;
 };
 
-export default function WeaponMap({ filter, selectedId, onSelect }: Props) {
+export default function WeaponMap({ filter, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const [mode, setMode] = useState<MapMode>("satellite");
@@ -209,7 +201,7 @@ export default function WeaponMap({ filter, selectedId, onSelect }: Props) {
     };
 
     map.on("load", () => {
-      hydrate(map, weapons.filter((w) => matchesFilter(w, filter)), selectedId);
+      hydrate(map, weapons.filter((w) => matchesFilter(w, filter)));
       map.on("click", "wpn-circle", onClick);
       map.on("click", "wpn-icons", onClick);
       map.on("mouseenter", "wpn-circle", () => {
@@ -238,15 +230,15 @@ export default function WeaponMap({ filter, selectedId, onSelect }: Props) {
     const map = mapRef.current;
     if (!map) return;
     map.setStyle(buildBaseStyle(mode));
-    map.once("style.load", () => hydrate(map, visible, selectedId));
+    map.once("style.load", () => hydrate(map, visible));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
-    hydrate(map, visible, selectedId);
-  }, [visible, selectedId]);
+    hydrate(map, visible);
+  }, [visible]);
 
   return (
     <div className="wpn-map">
@@ -258,11 +250,6 @@ export default function WeaponMap({ filter, selectedId, onSelect }: Props) {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search location..."
         />
-      </div>
-      <div className="tf-layers-wrap wpn-map-layers">
-        <button type="button" className="cmd-map-chip">
-          <Icon name="layers" size={14} /> Layers
-        </button>
       </div>
       <div className="tf-side-tools wpn-map-tools">
         <button type="button" aria-label="Zoom in" onClick={() => mapRef.current?.zoomIn({ duration: 200 })}>
