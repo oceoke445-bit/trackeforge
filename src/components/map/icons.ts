@@ -167,65 +167,50 @@ function drawLongGun(ctx: CanvasRenderingContext2D, size: number) {
   ctx.fill();
 }
 
+/** Flat status disc: dark fill, colored ring, simple white person glyph. */
 function drawSoldierPin(ctx: CanvasRenderingContext2D, size: number, color: string) {
   ctx.clearRect(0, 0, size, size);
   const cx = size * 0.5;
-  const cy = size * 0.36;
-  const r = size * 0.26;
+  const cy = size * 0.5;
+  const r = size * 0.38;
+  const ring = Math.max(4, size * 0.08);
 
+  // Soft outer glow matching status color
   ctx.save();
-  ctx.globalAlpha = 0.55;
-  const glow = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r * 2.15);
+  ctx.globalAlpha = 0.35;
+  const glow = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r * 1.35);
   glow.addColorStop(0, color);
-  glow.addColorStop(0.45, color);
   glow.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = glow;
   ctx.beginPath();
-  ctx.arc(cx, cy, r * 2.15, 0, Math.PI * 2);
+  ctx.arc(cx, cy, r * 1.35, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(cx - r * 0.38, cy + r * 0.62);
-  ctx.lineTo(cx + r * 0.38, cy + r * 0.62);
-  ctx.lineTo(cx, size * 0.96);
-  ctx.closePath();
-  ctx.fill();
-
+  // Dark disc fill
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = "#07140f";
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.lineWidth = Math.max(2, size * 0.028);
+  // Thick status ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - ring * 0.35, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = ring;
   ctx.stroke();
 
+  // White person pictogram (head + shoulders)
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.arc(cx, cy - r * 0.22, r * 0.28, Math.PI * 1.05, Math.PI * 1.95);
-  ctx.lineTo(cx + r * 0.22, cy - r * 0.16);
-  ctx.lineTo(cx - r * 0.22, cy - r * 0.16);
-  ctx.closePath();
+  ctx.arc(cx, cy - r * 0.22, r * 0.22, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.beginPath();
-  ctx.ellipse(cx, cy - r * 0.12, r * 0.4, r * 0.09, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(cx - r * 0.46, cy + r * 0.58);
-  ctx.quadraticCurveTo(cx - r * 0.5, cy + r * 0.16, cx - r * 0.16, cy + r * 0.08);
-  ctx.lineTo(cx + r * 0.16, cy + r * 0.08);
-  ctx.quadraticCurveTo(cx + r * 0.5, cy + r * 0.16, cx + r * 0.46, cy + r * 0.58);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(cx - r * 0.1, cy + r * 0.1);
-  ctx.lineTo(cx, cy + r * 0.28);
-  ctx.lineTo(cx + r * 0.1, cy + r * 0.1);
+  ctx.moveTo(cx - r * 0.42, cy + r * 0.42);
+  ctx.quadraticCurveTo(cx - r * 0.42, cy + r * 0.02, cx - r * 0.16, cy - r * 0.02);
+  ctx.lineTo(cx + r * 0.16, cy - r * 0.02);
+  ctx.quadraticCurveTo(cx + r * 0.42, cy + r * 0.02, cx + r * 0.42, cy + r * 0.42);
   ctx.closePath();
   ctx.fill();
 }

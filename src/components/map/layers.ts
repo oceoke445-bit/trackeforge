@@ -322,13 +322,13 @@ export function addOperationalLayers(map: Map) {
     },
   });
 
-  // Personnel — pin marker (soldier glyph). Circles stay for hit-testing only.
+  // Personnel — circular status disc + id label. Circles stay for hit-testing only.
   addLayerSafe(map, {
     id: "personnel-halo",
     type: "circle",
     source: "personnel",
     paint: {
-      "circle-radius": 8,
+      "circle-radius": 10,
       "circle-color": "#000000",
       "circle-opacity": 0,
     },
@@ -339,7 +339,7 @@ export function addOperationalLayers(map: Map) {
     type: "circle",
     source: "personnel",
     paint: {
-      "circle-radius": 16,
+      "circle-radius": 18,
       "circle-color": "#000000",
       "circle-opacity": 0,
     },
@@ -368,10 +368,14 @@ export function addOperationalLayers(map: Map) {
           "personnel-pin-offline",
         ],
       ],
-      "icon-size": 0.52,
-      "icon-anchor": "bottom",
+      "icon-size": 0.01,
+      "icon-anchor": "center",
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
+    },
+    paint: {
+      // Overview uses HTML mesh-style markers; keep this layer for hit-testing only.
+      "icon-opacity": 0,
     },
   });
 }

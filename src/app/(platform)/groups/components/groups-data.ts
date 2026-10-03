@@ -24,6 +24,19 @@ export type GroupWeapon = {
   assignedTo: string;
 };
 
+export type GroupHistoryCategory = "mission" | "alert" | "asset" | "location" | "comms";
+
+export type GroupHistoryEvent = {
+  id: string;
+  time: string;
+  date: string;
+  category: GroupHistoryCategory;
+  title: string;
+  detail: string;
+  actor: string;
+  tone: "green" | "red" | "orange" | "blue";
+};
+
 export type GroupInfo = {
   id: GroupId;
   name: string;
@@ -44,7 +57,7 @@ export type GroupInfo = {
   latency: string;
   members: GroupMember[];
   weapons: GroupWeapon[];
-  activity: { time: string; text: string; tone: "green" | "red" | "orange" | "blue" }[];
+  history: GroupHistoryEvent[];
   areaPolygon: [number, number][];
 };
 
@@ -99,13 +112,16 @@ export const groups: GroupInfo[] = [
       { id: "WPN-007", type: "Assault Rifle", status: "connected", assignedTo: "S-007" },
       { id: "WPN-008", type: "Assault Rifle", status: "connected", assignedTo: "S-008" },
     ],
-    activity: [
-      { time: "16:54:12", text: "S-003 location updated", tone: "blue" },
-      { time: "16:52:40", text: "WPN-003 disconnected", tone: "red" },
-      { time: "16:50:18", text: "S-007 low battery warning", tone: "orange" },
-      { time: "16:48:05", text: "Alpha Area checkpoint cleared", tone: "green" },
-      { time: "16:45:33", text: "S-004 vitals elevated", tone: "orange" },
-      { time: "16:42:10", text: "Mission status confirmed On Mission", tone: "green" },
+    history: [
+      { id: "AH-01", time: "16:54:12", date: "04 Oct 2026", category: "location", title: "S-003 location updated", detail: "Grid N-14 · Sector North perimeter sweep", actor: "S-003", tone: "blue" },
+      { id: "AH-02", time: "16:52:40", date: "04 Oct 2026", category: "asset", title: "WPN-003 disconnected", detail: "DMR link lost · last RSSI −98 dBm", actor: "WPN-003", tone: "red" },
+      { id: "AH-03", time: "16:50:18", date: "04 Oct 2026", category: "alert", title: "S-007 low battery warning", detail: "Wearable battery at 22% · recommend swap", actor: "S-007", tone: "orange" },
+      { id: "AH-04", time: "16:48:05", date: "04 Oct 2026", category: "mission", title: "Checkpoint cleared", detail: "Alpha Area north gate secured", actor: "ALPHA-01", tone: "green" },
+      { id: "AH-05", time: "16:45:33", date: "04 Oct 2026", category: "alert", title: "S-004 vitals elevated", detail: "HR 118 BPM · Temp 37.3°C", actor: "S-004", tone: "orange" },
+      { id: "AH-06", time: "16:42:10", date: "04 Oct 2026", category: "mission", title: "Mission status confirmed", detail: "Status set to On Mission", actor: "ALPHA-01", tone: "green" },
+      { id: "AH-07", time: "16:28:44", date: "04 Oct 2026", category: "comms", title: "Mesh hop path refreshed", detail: "S-001 → GW-002 · 2 hops · excellent", actor: "Mesh", tone: "blue" },
+      { id: "AH-08", time: "15:10:02", date: "04 Oct 2026", category: "mission", title: "Patrol route assigned", detail: "Route North-A loaded to squad terminals", actor: "Cpt. Andi Pratama", tone: "green" },
+      { id: "AH-09", time: "06:00:00", date: "04 Oct 2026", category: "mission", title: "Group Alpha deployed", detail: "Mission window started · 12h duration", actor: "HQ", tone: "blue" },
     ],
     areaPolygon: [
       [106.792, -6.228],
@@ -142,10 +158,13 @@ export const groups: GroupInfo[] = [
       { id: "WPN-B05", type: "Assault Rifle", status: "connected", assignedTo: "B-005" },
       { id: "WPN-B06", type: "Sidearm", status: "connected", assignedTo: "B-006" },
     ],
-    activity: [
-      { time: "16:51:02", text: "Bravo convoy cleared checkpoint", tone: "green" },
-      { time: "16:47:18", text: "WPN-B04 link lost", tone: "red" },
-      { time: "16:44:40", text: "B-002 entered Corridor B", tone: "blue" },
+    history: [
+      { id: "BH-01", time: "16:51:02", date: "04 Oct 2026", category: "mission", title: "Convoy cleared checkpoint", detail: "Eastern corridor checkpoint B-2 green", actor: "BRAVO-01", tone: "green" },
+      { id: "BH-02", time: "16:47:18", date: "04 Oct 2026", category: "asset", title: "WPN-B04 link lost", detail: "Assault rifle offline · retrying mesh sync", actor: "WPN-B04", tone: "red" },
+      { id: "BH-03", time: "16:44:40", date: "04 Oct 2026", category: "location", title: "B-002 entered Corridor B", detail: "Route security sector entry logged", actor: "B-002", tone: "blue" },
+      { id: "BH-04", time: "16:20:11", date: "04 Oct 2026", category: "comms", title: "Escort channel synced", detail: "Logistics radio net joined", actor: "Lt. Sari Wibowo", tone: "blue" },
+      { id: "BH-05", time: "15:55:30", date: "04 Oct 2026", category: "alert", title: "B-004 signal degraded", detail: "RSSI dropped below −90 dBm", actor: "B-004", tone: "orange" },
+      { id: "BH-06", time: "07:30:00", date: "04 Oct 2026", category: "mission", title: "Group Bravo deployed", detail: "Route security mission started", actor: "HQ", tone: "green" },
     ],
     areaPolygon: [
       [106.828, -6.232],
@@ -181,9 +200,12 @@ export const groups: GroupInfo[] = [
       { id: "WPN-C04", type: "Sidearm", status: "unassigned", assignedTo: "—" },
       { id: "WPN-C05", type: "Assault Rifle", status: "connected", assignedTo: "C-005" },
     ],
-    activity: [
-      { time: "16:53:20", text: "Charlie overwatch established", tone: "green" },
-      { time: "16:49:11", text: "Contact reported near ridge", tone: "orange" },
+    history: [
+      { id: "CH-01", time: "16:53:20", date: "04 Oct 2026", category: "mission", title: "Overwatch established", detail: "Ridge line OP-2 occupied", actor: "CHARLIE-01", tone: "green" },
+      { id: "CH-02", time: "16:49:11", date: "04 Oct 2026", category: "alert", title: "Contact near ridge", detail: "Unverified movement · west approach", actor: "C-001", tone: "orange" },
+      { id: "CH-03", time: "16:30:05", date: "04 Oct 2026", category: "asset", title: "WPN-C04 unassigned", detail: "Sidearm staged at support cache", actor: "WPN-C04", tone: "blue" },
+      { id: "CH-04", time: "15:40:22", date: "04 Oct 2026", category: "location", title: "C-002 repositioned", detail: "Moved to overwatch secondary", actor: "C-002", tone: "blue" },
+      { id: "CH-05", time: "06:15:00", date: "04 Oct 2026", category: "mission", title: "Group Charlie deployed", detail: "Fire support window opened", actor: "HQ", tone: "green" },
     ],
     areaPolygon: [
       [106.77, -6.22],
@@ -218,9 +240,11 @@ export const groups: GroupInfo[] = [
       { id: "WPN-D03", type: "Assault Rifle", status: "connected", assignedTo: "D-003" },
       { id: "WPN-D04", type: "Sidearm", status: "connected", assignedTo: "D-004" },
     ],
-    activity: [
-      { time: "16:40:00", text: "Delta remains on standby", tone: "blue" },
-      { time: "16:20:14", text: "QRF readiness check passed", tone: "green" },
+    history: [
+      { id: "DH-01", time: "16:40:00", date: "04 Oct 2026", category: "mission", title: "Delta remains on standby", detail: "QRF posture unchanged · 8 min response", actor: "DELTA-01", tone: "blue" },
+      { id: "DH-02", time: "16:20:14", date: "04 Oct 2026", category: "mission", title: "QRF readiness check passed", detail: "Vehicles, weapons, and med kit green", actor: "Cpt. Nadia Putri", tone: "green" },
+      { id: "DH-03", time: "14:05:40", date: "04 Oct 2026", category: "comms", title: "Staging yard net check", detail: "All Delta nodes acknowledged", actor: "Mesh", tone: "blue" },
+      { id: "DH-04", time: "08:00:00", date: "04 Oct 2026", category: "mission", title: "Group Delta staged", detail: "Standby window started", actor: "HQ", tone: "green" },
     ],
     areaPolygon: [
       [106.8, -6.26],
@@ -254,9 +278,11 @@ export const groups: GroupInfo[] = [
       { id: "WPN-E02", type: "Sidearm", status: "connected", assignedTo: "E-002" },
       { id: "WPN-E03", type: "Assault Rifle", status: "unassigned", assignedTo: "—" },
     ],
-    activity: [
-      { time: "16:30:00", text: "Echo logistics sync complete", tone: "green" },
-      { time: "16:10:22", text: "Comms relay healthy", tone: "blue" },
+    history: [
+      { id: "EH-01", time: "16:30:00", date: "04 Oct 2026", category: "mission", title: "Logistics sync complete", detail: "Resupply manifest pushed to field units", actor: "ECHO-01", tone: "green" },
+      { id: "EH-02", time: "16:10:22", date: "04 Oct 2026", category: "comms", title: "Comms relay healthy", detail: "HQ uplink latency 18ms", actor: "Mesh", tone: "blue" },
+      { id: "EH-03", time: "12:15:08", date: "04 Oct 2026", category: "asset", title: "WPN-E03 unassigned", detail: "Spare rifle held at armory", actor: "WPN-E03", tone: "blue" },
+      { id: "EH-04", time: "05:00:00", date: "04 Oct 2026", category: "mission", title: "Echo watch started", detail: "24h comms & logistics shift", actor: "HQ", tone: "green" },
     ],
     areaPolygon: [
       [106.78, -6.25],

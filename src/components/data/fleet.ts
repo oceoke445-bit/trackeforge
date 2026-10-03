@@ -17,6 +17,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Overview", icon: "grid", href: "/overview" },
       { label: "Groups", icon: "layers", href: "/groups" },
+      { label: "Personal", icon: "user", href: "/personal" },
       { label: "Weapons", icon: "crosshair", href: "/weapons" },
     ],
   },
@@ -31,14 +32,14 @@ export const navGroups: NavGroup[] = [
     label: "Monitoring",
     items: [
       { label: "Alerts", icon: "bell", href: "/alerts" },
+      { label: "History", icon: "clock", href: "/groups/history" },
     ],
   },
-  
   {
     label: "Administration",
     items: [
       { label: "User Access", icon: "users", href: "/user-access" },
-      { label: "Activity Log", icon: "clock", href: "/activity-log" },
+      { label: "Activity Log", icon: "file", href: "/activity-log" },
       { label: "Settings", icon: "settings", href: "/settings" },
     ],
   },

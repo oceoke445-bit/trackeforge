@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Map as MapLibreMap,
+  Marker,
   setWorkerUrl,
   type Map,
   type MapLayerMouseEvent,
@@ -21,6 +22,22 @@ import {
   type LayerGroupId,
 } from "./layers";
 import { MAP_CAMERA, TERRAIN_STATE, buildBaseStyle, type MapMode } from "./styles";
+
+const PERSON_SVG =
+  `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/></svg>`;
+
+function personMarkerElement(id: string, status: PersonnelStatus) {
+  const root = document.createElement("div");
+  root.className = `mesh-node soldier status-${status}`;
+  root.innerHTML = `<span class="mesh-node-dot">${PERSON_SVG}</span><span class="mesh-node-card"><strong>${id}</strong></span>`;
+  return root;
+}
+
+function markerMatchesFilter(status: PersonnelStatus, filter: "all" | PersonnelStatus) {
+  if (filter === "all") return true;
+  if (filter === "warning") return status === "warning" || status === "critical";
+  return status === filter;
+}
 
 let workerReady = false;
 function ensureMapWorker() {
@@ -74,6 +91,7 @@ export default function TraxonMap({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
+  const markersRef = useRef<{ id: string; marker: Marker; el: HTMLDivElement; status: PersonnelStatus }[]>([]);
   const selectedRef = useRef(selected);
   const onSelectRef = useRef(onSelect);
   const [mode, setMode] = useState<MapMode>("terrain");
@@ -89,6 +107,17 @@ export default function TraxonMap({
   onSelectRef.current = onSelect;
   visibilityRef.current = visibility;
   filterRef.current = filter;
+
+  function syncPersonMarkers() {
+    const showLayer = visibilityRef.current.personnel;
+    const activeFilter = filterRef.current;
+    const selectedId = personnel[selectedRef.current]?.id;
+    for (const item of markersRef.current) {
+      const visible = showLayer && markerMatchesFilter(item.status, activeFilter);
+      item.el.classList.toggle("is-hidden", !visible);
+      item.el.classList.toggle("is-selected", item.id === selectedId);
+    }
+  }
 
   const counts = useMemo(
     () => ({
@@ -119,6 +148,31 @@ export default function TraxonMap({
     map.on("load", () => {
       hydrateMap(map, mode, visibilityRef.current);
       setPersonnelStatusFilter(map, filterRef.current === "all" ? "all" : filterRef.current);
+
+      for (const person of personnel) {
+        const el = personMarkerElement(person.id, person.status);
+        el.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const personIndex = personnel.findIndex((item) => item.id === person.id);
+          if (personIndex < 0) return;
+          onSelectRef.current(personIndex);
+          setPopup({
+            id: person.id,
+            name: person.name,
+            status: person.status,
+            hr: person.hr,
+            temperature: person.temp,
+            battery: person.battery,
+            kind: "personnel",
+          });
+          map.easeTo({ center: [person.lng, person.lat], duration: 450 });
+        });
+        const marker = new Marker({ element: el, anchor: "center" })
+          .setLngLat([person.lng, person.lat])
+          .addTo(map);
+        markersRef.current.push({ id: person.id, marker, el, status: person.status });
+      }
+      syncPersonMarkers();
       map.resize();
     });
 
@@ -185,6 +239,8 @@ export default function TraxonMap({
         map.off("mousemove", layerId, onMove);
         map.off("mouseleave", layerId, onLeave);
       }
+      for (const item of markersRef.current) item.marker.remove();
+      markersRef.current = [];
       map.remove();
       mapRef.current = null;
     };
@@ -198,6 +254,11 @@ export default function TraxonMap({
     map.once("style.load", () => {
       hydrateMap(map, mode, visibilityRef.current);
       setPersonnelStatusFilter(map, filterRef.current === "all" ? "all" : filterRef.current);
+      // Re-attach HTML markers after style swap (MapLibre removes custom markers with style)
+      for (const item of markersRef.current) {
+        item.marker.addTo(map);
+      }
+      syncPersonMarkers();
     });
   }, [mode]);
 
@@ -205,6 +266,7 @@ export default function TraxonMap({
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
     applyVisibility(map, visibility);
+    syncPersonMarkers();
   }, [visibility]);
 
   useEffect(() => {
@@ -221,6 +283,7 @@ export default function TraxonMap({
         if (map.getLayer(layerId)) map.setFilter(layerId, alertFilter);
       }
     }
+    syncPersonMarkers();
     void next;
   }, [filter]);
 
@@ -239,10 +302,12 @@ export default function TraxonMap({
       kind: "personnel",
     });
 
-    if (!map || !map.getSource("personnel")) return;
-    for (const item of personnel) {
-      map.setFeatureState({ source: "personnel", id: item.id }, { selected: item.id === person.id });
+    if (map?.getSource("personnel")) {
+      for (const item of personnel) {
+        map.setFeatureState({ source: "personnel", id: item.id }, { selected: item.id === person.id });
+      }
     }
+    syncPersonMarkers();
   }, [selected]);
 
   function toggleGroup(id: LayerGroupId) {

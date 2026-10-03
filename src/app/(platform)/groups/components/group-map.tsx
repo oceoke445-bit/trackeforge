@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Map as MapLibreMap,
+  Marker,
   setWorkerUrl,
   type GeoJSONSource,
   type Map,
@@ -11,7 +12,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import Icon from "@/components/ui/icon";
 import { registerMapIcons } from "@/components/map/icons";
 import { buildBaseStyle, type MapMode } from "@/components/map/styles";
-import type { GroupInfo } from "./groups-data";
+import type { PersonnelStatus } from "@/app/(platform)/components/command-data";
+import type { GroupInfo, GroupMember } from "./groups-data";
 
 let workerReady = false;
 function ensureMapWorker() {
@@ -19,6 +21,9 @@ function ensureMapWorker() {
   setWorkerUrl("/vendor/maplibre/maplibre-gl-worker.mjs");
   workerReady = true;
 }
+
+const PERSON_SVG =
+  `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/></svg>`;
 
 const RESTRICTED: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
@@ -42,20 +47,11 @@ const RESTRICTED: GeoJSON.FeatureCollection = {
   ],
 };
 
-function toPersonnelGeoJSON(group: GroupInfo): GeoJSON.FeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: group.members.map((member, index) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [member.lng, member.lat] },
-      properties: {
-        id: member.id,
-        status: member.status,
-        name: member.name,
-        role: index === 0 ? "danru" : "member",
-      },
-    })),
-  };
+function personMarkerElement(id: string, status: PersonnelStatus) {
+  const root = document.createElement("div");
+  root.className = `mesh-node soldier status-${status}`;
+  root.innerHTML = `<span class="mesh-node-dot">${PERSON_SVG}</span><span class="mesh-node-card"><strong>${id}</strong></span>`;
+  return root;
 }
 
 function toAreaGeoJSON(group: GroupInfo): GeoJSON.FeatureCollection {
@@ -71,21 +67,19 @@ function toAreaGeoJSON(group: GroupInfo): GeoJSON.FeatureCollection {
   };
 }
 
-function hydrate(map: Map, group: GroupInfo) {
+function hydrateLayers(map: Map, group: GroupInfo) {
   registerMapIcons(map);
 
   const area = toAreaGeoJSON(group);
-  const personnel = toPersonnelGeoJSON(group);
 
   const upsert = (id: string, data: GeoJSON.FeatureCollection) => {
     const source = map.getSource(id) as GeoJSONSource | undefined;
     if (source) source.setData(data);
-    else map.addSource(id, { type: "geojson", data, promoteId: id === "group-personnel" ? "id" : undefined });
+    else map.addSource(id, { type: "geojson", data });
   };
 
   upsert("group-area", area);
   upsert("group-restricted", RESTRICTED);
-  upsert("group-personnel", personnel);
 
   if (!map.getLayer("group-area-fill")) {
     map.addLayer({
@@ -138,40 +132,30 @@ function hydrate(map: Map, group: GroupInfo) {
       },
       paint: { "text-color": "#fff", "text-halo-color": "#B91C1C", "text-halo-width": 2 },
     });
-    map.addLayer({
-      id: "group-personnel-icons",
-      type: "symbol",
-      source: "group-personnel",
-      layout: {
-        "icon-image": [
-          "match",
-          ["get", "role"],
-          "danru",
-          "personnel-pin-leader",
-          "personnel-pin-online",
-        ],
-        "icon-size": 0.48,
-        "icon-anchor": "bottom",
-        "icon-allow-overlap": true,
-        "icon-ignore-placement": true,
-        "text-field": ["get", "id"],
-        "text-offset": [0, 0.4],
-        "text-size": 10,
-        "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
-        "text-allow-overlap": true,
-      },
-      paint: {
-        "text-color": "#e8eef6",
-        "text-halo-color": "rgba(0,0,0,0.7)",
-        "text-halo-width": 1,
-      },
-    });
+  }
+}
+
+function syncMemberMarkers(
+  map: Map,
+  members: GroupMember[],
+  markersRef: { current: Marker[] },
+) {
+  for (const marker of markersRef.current) marker.remove();
+  markersRef.current = [];
+
+  for (const member of members) {
+    const el = personMarkerElement(member.id, member.status);
+    const marker = new Marker({ element: el, anchor: "center" })
+      .setLngLat([member.lng, member.lat])
+      .addTo(map);
+    markersRef.current.push(marker);
   }
 }
 
 export default function GroupMap({ group }: { group: GroupInfo }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
+  const markersRef = useRef<Marker[]>([]);
   const [mode, setMode] = useState<MapMode>("satellite");
 
   useEffect(() => {
@@ -190,7 +174,8 @@ export default function GroupMap({ group }: { group: GroupInfo }) {
     mapRef.current = map;
 
     map.on("load", () => {
-      hydrate(map, group);
+      hydrateLayers(map, group);
+      syncMemberMarkers(map, group.members, markersRef);
       map.resize();
     });
 
@@ -199,6 +184,8 @@ export default function GroupMap({ group }: { group: GroupInfo }) {
 
     return () => {
       ro.disconnect();
+      for (const marker of markersRef.current) marker.remove();
+      markersRef.current = [];
       map.remove();
       mapRef.current = null;
     };
@@ -209,15 +196,18 @@ export default function GroupMap({ group }: { group: GroupInfo }) {
     const map = mapRef.current;
     if (!map) return;
     map.setStyle(buildBaseStyle(mode));
-    map.once("style.load", () => hydrate(map, group));
-    // group is reapplied via hydrate after style load; avoid setStyle on every group switch
+    map.once("style.load", () => {
+      hydrateLayers(map, group);
+      syncMemberMarkers(map, group.members, markersRef);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
-    hydrate(map, group);
+    hydrateLayers(map, group);
+    syncMemberMarkers(map, group.members, markersRef);
     const lngs = group.members.map((m) => m.lng);
     const lats = group.members.map((m) => m.lat);
     if (!lngs.length) return;
