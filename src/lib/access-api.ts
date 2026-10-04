@@ -114,6 +114,7 @@ export type LoginResult = {
   verification: Verification;
   status: UserStatus;
   access: EffectiveAccess;
+  session_id: string;
 };
 
 export function loginAccount(account: string, password: string) {

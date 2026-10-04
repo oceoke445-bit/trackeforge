@@ -3215,7 +3215,7 @@ button.settings-nav-item { cursor: pointer; }
 
 .alog-filters .alog-filter,
 .alog-actor-search { width: 100%; margin-top: 8px; }
-.alog-filters .alog-filter select { width: 100%; }
+.alog-filters .alog-filter > button { width: 100%; }
 .alog-actor-search { margin-top: 8px; flex: none; }
 
 .alog-view-toggle {
@@ -3408,18 +3408,55 @@ button.settings-nav-item { cursor: pointer; }
   white-space: nowrap;
 }
 
-.alog-filter select {
-  appearance: none;
+.alog-filter > button {
+  flex: 1;
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
-  color: inherit;
+  color: var(--text);
   font: inherit;
-  padding-right: 14px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alog-menu {
+  position: fixed;
+  z-index: 40;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.alog-menu button {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.alog-filter > svg:last-child {
+.alog-menu button:hover,
+.alog-menu button.on {
+  background: var(--accent-wash);
+  color: var(--accent-soft);
+}
+
+.alog-filter > svg {
   position: absolute;
   right: 8px;
   pointer-events: none;

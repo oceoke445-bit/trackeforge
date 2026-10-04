@@ -76,6 +76,7 @@ export default function LoginView() {
         username: session.username,
         role: session.access.role,
         permissions: session.access.permissions,
+        sessionId: session.session_id,
       });
       router.push("/overview");
     } catch (error) {

@@ -7,6 +7,7 @@ export type SignedInUser = {
   username: string | null;
   role: string | null;
   permissions: string[];
+  sessionId: string | null;
 };
 
 export function hasSession() {
@@ -21,7 +22,7 @@ export function readSessionUser(): SignedInUser | null {
   try {
     const parsed = JSON.parse(raw) as SignedInUser;
     if (typeof parsed.id !== "number" || typeof parsed.name !== "string" || !Array.isArray(parsed.permissions)) return null;
-    return parsed;
+    return { ...parsed, sessionId: typeof parsed.sessionId === "string" ? parsed.sessionId : null };
   } catch {
     return null;
   }
