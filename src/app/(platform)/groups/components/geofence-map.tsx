@@ -16,7 +16,6 @@ import {
   MAP_UNITS,
   toZonesGeoJSON,
   zoneCenter,
-  type GeofenceType,
   type GeofenceZone,
 } from "./geofence-data";
 
@@ -34,15 +33,13 @@ function unitElement(unit: (typeof MAP_UNITS)[number]) {
   return el;
 }
 
-function zoneMarkerElement(type: GeofenceType, selected: boolean) {
+function zoneMarkerElement(type: GeofenceZone["type"], selected: boolean) {
   const el = document.createElement("div");
   el.className = `gfn-zone-marker ${type}${selected ? " on" : ""}`;
   const icon =
     type === "safe"
       ? `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5 9.5 17 19 7"/></svg>`
-      : type === "silent"
-        ? `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m12 3 9 16H3Z"/><path d="M12 10v4M12 17h.01"/></svg>`
-        : `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m12 3 9 16H3Z"/><path d="M12 10v4M12 17h.01"/></svg>`;
+      : `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m12 3 9 16H3Z"/><path d="M12 10v4M12 17h.01"/></svg>`;
   el.innerHTML = icon;
   return el;
 }
@@ -78,6 +75,21 @@ function hydrate(map: Map, zones: GeofenceZone[], selectedId: string) {
         "line-color": ["get", "color"],
         "line-width": ["case", ["==", ["get", "selected"], 1], 3.2, 2.2],
         "line-dasharray": [2.4, 1.8],
+      },
+    });
+    map.addLayer({
+      id: "gfn-label",
+      type: "symbol",
+      source: "gfn-zones",
+      layout: {
+        "text-field": ["get", "label"],
+        "text-size": 12,
+        "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+      },
+      paint: {
+        "text-color": "#f8fafc",
+        "text-halo-color": "rgba(2, 6, 23, 0.75)",
+        "text-halo-width": 1.2,
       },
     });
   }

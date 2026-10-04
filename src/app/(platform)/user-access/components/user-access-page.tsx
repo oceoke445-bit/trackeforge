@@ -45,12 +45,14 @@ export default function UserAccessPage() {
 
   return (
     <div className="access-screen">
-      <div className="access-head">
-        <span className="access-head-icon">
+      <div className="access-head page-title">
+        <span className="page-title-icon">
           <Icon name="users" size={15} />
         </span>
-        <h1>User & Access</h1>
-        <span className="access-plane">Identity & Access Control Plane</span>
+        <div>
+          <h1>User & Access</h1>
+          <p>Identity & Access Control Plane</p>
+        </div>
       </div>
       <div className="access-tabs" role="tablist" aria-label="User access sections">
         {tabs.map((item) => (

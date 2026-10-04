@@ -74,7 +74,7 @@ export default function AlertsPage() {
   const [selectedId, setSelectedId] = useState(ALERTS[0].id);
   const [open, setOpen] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
-  const [tab, setTab] = useState<"details" | "location" | "timeline" | "related">("details");
+  const [tab, setTab] = useState<"details" | "timeline" | "related">("details");
 
   const ranged = useMemo(() => ALERTS.filter((item) => matchesRange(item.minutesAgo, range)), [range]);
   const bins = useMemo(() => timelineBins(ranged, range), [ranged, range]);
@@ -147,8 +147,8 @@ export default function AlertsPage() {
 
   return (
     <div className="alt-page">
-      <header className="alt-head">
-        <span className="alt-head-icon"><Icon name="bell" size={18} /></span>
+      <header className="alt-head page-title">
+        <span className="alt-head-icon page-title-icon"><Icon name="bell" size={15} /></span>
         <div>
           <h1>Alerts</h1>
           <p>Monitor and manage critical events from soldiers and system devices.</p>
@@ -354,15 +354,15 @@ function Detail({
   onClose,
 }: {
   alert: AlertItem;
-  tab: "details" | "location" | "timeline" | "related";
-  onTab: (tab: "details" | "location" | "timeline" | "related") => void;
+  tab: "details" | "timeline" | "related";
+  onTab: (tab: "details" | "timeline" | "related") => void;
   onClose: () => void;
 }) {
   return (
     <aside className="alt-detail">
       <header>
-        <span className="alt-sos">SOS</span>
-        <div>
+        <span className={`alt-sos ${alert.severity}`}>{alert.type === "SOS" ? "SOS" : alert.type.slice(0, 3).toUpperCase()}</span>
+        <div className="alt-detail-copy">
           <strong>{alert.type} {alert.type === "SOS" ? "Signal Received" : "Alert"}</strong>
           <small>#{alert.id}</small>
         </div>
@@ -370,15 +370,14 @@ function Detail({
         <button type="button" aria-label="Close" onClick={onClose}>×</button>
       </header>
       <div className="alt-tabs">
-        {(["details", "location", "timeline", "related"] as const).map((item) => (
+        {(["details", "timeline", "related"] as const).map((item) => (
           <button key={item} type="button" className={tab === item ? "on" : ""} onClick={() => onTab(item)}>
             {item[0].toUpperCase() + item.slice(1)}
           </button>
         ))}
       </div>
-      {tab === "details" || tab === "location" ? (
+      {tab === "details" ? (
         <>
-          {tab === "details" ? (
             <dl className="alt-fields">
               <div><dt>Event Time</dt><dd>{alert.date} {alert.clock}<small>{alert.lastSeen}</small></dd></div>
               <div><dt>Alert Type</dt><dd>{alert.type}</dd></div>
@@ -389,13 +388,12 @@ function Detail({
               <div><dt>Last Seen</dt><dd>{alert.lastSeen}</dd></div>
               <div><dt>Battery Level</dt><dd>{alert.battery}</dd></div>
             </dl>
-          ) : null}
           <div className="alt-loc-head">
             <h3><Icon name="pin" size={14} /> Location</h3>
             <span>{alert.lat.toFixed(4)}, {alert.lng.toFixed(4)}</span>
           </div>
           <AlertMap lng={alert.lng} lat={alert.lat} soldier={alert.soldier} />
-          {tab === "details" && alert.hr ? (
+          {alert.hr ? (
             <div className="alt-vitals">
               <header><h3>Latest Vital (from Chest Strap)</h3><small>22:37:50</small></header>
               <div>

@@ -46,9 +46,9 @@ export default function MeshStatus() {
 
   return (
     <div className="mesh-status">
-      <header className="mesh-head">
-        <span className="mesh-head-icon" aria-hidden="true">
-          <Icon name="signal" size={18} />
+      <header className="mesh-head page-title">
+        <span className="page-title-icon" aria-hidden="true">
+          <Icon name="signal" size={15} />
         </span>
         <div>
           <h2>Mesh Status</h2>

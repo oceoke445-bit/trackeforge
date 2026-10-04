@@ -29,16 +29,15 @@ export type MapFilter = "all" | WeaponStatus;
 export const weaponStats: {
   label: string;
   value: string;
-  meta: string;
   tone: string;
   icon: IconName;
 }[] = [
-  { label: "Total Weapons", value: "46", meta: "↑ 2 from yesterday", tone: "blue", icon: "crosshair" },
-  { label: "Connected", value: "43", meta: "93.5% online", tone: "green", icon: "signal" },
-  { label: "Disconnected", value: "2", meta: "↑ 4.3% offline", tone: "red", icon: "bolt" },
-  { label: "Unassigned", value: "1", meta: "↑ 2.2% unassigned", tone: "slate", icon: "box" },
-  { label: "Low Battery", value: "3", meta: "↑ 6.5% < 20%", tone: "amber", icon: "heart" },
-  { label: "Maintenance", value: "2", meta: "In service", tone: "cyan", icon: "settings" },
+  { label: "Total Weapons", value: "46", tone: "blue", icon: "crosshair" },
+  { label: "Connected", value: "43", tone: "green", icon: "signal" },
+  { label: "Disconnected", value: "2", tone: "red", icon: "bolt" },
+  { label: "Unassigned", value: "1", tone: "slate", icon: "box" },
+  { label: "Low Battery", value: "3", tone: "amber", icon: "heart" },
+  { label: "Maintenance", value: "2", tone: "cyan", icon: "settings" },
 ];
 
 export const weaponTypeBreakdown: { type: WeaponType; count: number; pct: number; color: string }[] = [

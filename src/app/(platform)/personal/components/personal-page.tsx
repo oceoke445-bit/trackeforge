@@ -24,6 +24,12 @@ function sparkPath(values: number[], width = 120, height = 36) {
     .join(" ");
 }
 
+function sparkArea(values: number[], width = 120, height = 36) {
+  const line = sparkPath(values, width, height);
+  if (!line) return "";
+  return `${line} L${width} ${height} L0 ${height} Z`;
+}
+
 function eventIcon(type: PersonalEventType): IconName {
   if (type === "Movement") return "route";
   if (type === "Vital") return "heart";
@@ -55,6 +61,13 @@ export default function PersonalPage() {
 
   return (
     <div className="prs-page">
+      <header className="page-title">
+        <span className="page-title-icon"><Icon name="user" size={15} /></span>
+        <div>
+          <h1>Personal</h1>
+          <p>Monitor a soldier&apos;s status, equipment, vitals, and recent activity.</p>
+        </div>
+      </header>
       <div className="prs-topbar">
         <label className="prs-top-search">
           <Icon name="search" size={14} />
@@ -83,18 +96,26 @@ export default function PersonalPage() {
         </select>
       </div>
 
-      <nav className="prs-breadcrumb" aria-label="Breadcrumb">
-        <span>Personnel</span>
-        <Icon name="chevron" size={12} />
-        <strong>{person.code}</strong>
-      </nav>
-
       <Overview person={person} />
     </div>
   );
 }
 
 function Overview({ person }: { person: PersonalProfile }) {
+  const pageSize = 4;
+  const [page, setPage] = useState(1);
+  const [pagedFor, setPagedFor] = useState(person.id);
+  if (pagedFor !== person.id) {
+    setPagedFor(person.id);
+    setPage(1);
+  }
+  const pageCount = Math.max(1, Math.ceil(person.events.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const start = (currentPage - 1) * pageSize;
+  const rows = person.events.slice(start, start + pageSize);
+  const rangeStart = person.events.length === 0 ? 0 : start + 1;
+  const rangeEnd = Math.min(start + pageSize, person.events.length);
+
   return (
     <div className="prs-overview">
       <section className="prs-hero">
@@ -148,14 +169,14 @@ function Overview({ person }: { person: PersonalProfile }) {
           <h3>Current Status</h3>
           <div className="prs-status-grid">
             <div>
-              <Icon name="signal" size={15} />
+              <Icon name="signal" size={11} />
               <div>
                 <small>Status</small>
                 <strong className={person.status}>{statusLabel(person.status)}</strong>
               </div>
             </div>
             <div>
-              <Icon name="pin" size={15} />
+              <Icon name="pin" size={11} />
               <div>
                 <small>Location</small>
                 <strong>
@@ -165,7 +186,7 @@ function Overview({ person }: { person: PersonalProfile }) {
               </div>
             </div>
             <div>
-              <Icon name="route" size={15} />
+              <Icon name="route" size={11} />
               <div>
                 <small>Movement</small>
                 <strong>{person.movement}</strong>
@@ -173,7 +194,7 @@ function Overview({ person }: { person: PersonalProfile }) {
               </div>
             </div>
             <div>
-              <Icon name="signal" size={15} />
+              <Icon name="signal" size={11} />
               <div>
                 <small>Signal</small>
                 <strong>{person.signal != null ? `${person.signal} dBm` : "—"}</strong>
@@ -183,7 +204,7 @@ function Overview({ person }: { person: PersonalProfile }) {
               </div>
             </div>
             <div className="wide">
-              <Icon name="bolt" size={15} />
+              <Icon name="bolt" size={11} />
               <div>
                 <small>Battery Level</small>
                 <strong>{person.battery != null ? `${person.battery}%` : "—"}</strong>
@@ -240,7 +261,7 @@ function Overview({ person }: { person: PersonalProfile }) {
             {person.equipment.map((item) => (
               <li key={item.id}>
                 <span className={`prs-equip-thumb ${item.tone}`}>
-                  <Icon name={item.id === "weapon" ? "crosshair" : item.id === "strap" ? "heart" : "shield"} size={16} />
+                  <Icon name={item.id === "weapon" ? "crosshair" : item.id === "strap" ? "heart" : "shield"} size={11} />
                 </span>
                 <div>
                   <strong>{item.name}</strong>
@@ -263,9 +284,6 @@ function Overview({ person }: { person: PersonalProfile }) {
         <article className="panel prs-events-card">
           <header>
             <h3>Recent Events</h3>
-            <button type="button">
-              View All <Icon name="chevron" size={12} />
-            </button>
           </header>
           <div className="prs-events-wrap">
             <table>
@@ -278,7 +296,7 @@ function Overview({ person }: { person: PersonalProfile }) {
                 </tr>
               </thead>
               <tbody>
-                {person.events.map((event) => (
+                {rows.map((event) => (
                   <tr key={event.id}>
                     <td>{event.time}</td>
                     <td>
@@ -295,6 +313,24 @@ function Overview({ person }: { person: PersonalProfile }) {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="cmd-pager prs-events-pager">
+            <span>
+              {rangeStart}–{rangeEnd} of {person.events.length}
+            </span>
+            <div>
+              <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Previous page">
+                <Icon name="chevron" size={12} />
+              </button>
+              {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+                <button key={number} type="button" className={number === currentPage ? "on" : ""} onClick={() => setPage(number)}>
+                  {number}
+                </button>
+              ))}
+              <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="Next page">
+                <Icon name="chevron" size={12} />
+              </button>
+            </div>
           </div>
         </article>
       </section>
@@ -321,16 +357,23 @@ function VitalTile({
     <div className={`prs-vital-tile ${tone}`}>
       <div className="prs-vital-top">
         <span>
-          <Icon name={icon} size={14} />
+          <Icon name={icon} size={11} />
         </span>
         <small>{label}</small>
+        <strong>
+          {value}
+          <em>{unit}</em>
+        </strong>
       </div>
-      <strong>
-        {value}
-        <em>{unit}</em>
-      </strong>
-      <svg viewBox="0 0 120 36" className="prs-spark" aria-hidden="true">
-        <path d={sparkPath(values)} />
+      <svg viewBox="0 0 120 36" preserveAspectRatio="none" className="prs-spark" aria-hidden="true">
+        <defs>
+          <linearGradient id={`prs-spark-${tone}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path className="prs-spark-fill" d={sparkArea(values)} fill={`url(#prs-spark-${tone})`} />
+        <path className="prs-spark-line" d={sparkPath(values)} />
       </svg>
     </div>
   );

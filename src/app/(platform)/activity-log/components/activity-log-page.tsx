@@ -322,9 +322,9 @@ export default function ActivityLogPage() {
 
   return (
     <div className={`alog-screen${selected ? " has-detail" : ""}`}>
-      <div className="alog-head">
-        <span className="alog-head-icon">
-          <Icon name="file" size={16} />
+      <div className="alog-head page-title">
+        <span className="page-title-icon">
+          <Icon name="file" size={15} />
         </span>
         <div>
           <h1>Activity Log</h1>

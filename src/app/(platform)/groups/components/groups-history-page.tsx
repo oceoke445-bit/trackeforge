@@ -153,9 +153,9 @@ export default function GroupsHistoryPage() {
 
   return (
     <div className="alt-page hist-alt">
-      <header className="alt-head">
-        <span className="alt-head-icon hist-head-icon-tone">
-          <Icon name="clock" size={18} />
+      <header className="alt-head page-title">
+        <span className="alt-head-icon page-title-icon">
+          <Icon name="clock" size={15} />
         </span>
         <div>
           <h1>History</h1>

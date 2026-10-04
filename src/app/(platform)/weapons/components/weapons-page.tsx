@@ -62,7 +62,8 @@ export default function WeaponsPage() {
 
   return (
     <div className="wpn-page">
-      <header className="wpn-head">
+      <header className="wpn-head page-title">
+        <span className="page-title-icon"><Icon name="crosshair" size={15} /></span>
         <div>
           <h1>Weapons</h1>
           <p>Monitor and manage all weapon assets, their status, assignment, and operational readiness.</p>
@@ -73,12 +74,11 @@ export default function WeaponsPage() {
         {weaponStats.map((stat) => (
           <article key={stat.label} className={`wpn-stat ${stat.tone}`}>
             <span className="wpn-stat-icon">
-              <Icon name={stat.icon} size={16} />
+              <Icon name={stat.icon} size={15} />
             </span>
             <div>
               <small>{stat.label}</small>
               <strong>{stat.value}</strong>
-              <em>{stat.meta}</em>
             </div>
           </article>
         ))}

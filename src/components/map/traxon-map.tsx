@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Map as MapLibreMap,
   Marker,
   setWorkerUrl,
   type Map,
   type MapLayerMouseEvent,
+  type MapMouseEvent,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import Icon from "@/components/ui/icon";
@@ -119,15 +120,6 @@ export default function TraxonMap({
     }
   }
 
-  const counts = useMemo(
-    () => ({
-      online: personnel.filter((p) => p.status === "online").length,
-      alert: personnel.filter((p) => p.status === "warning" || p.status === "critical").length,
-      offline: personnel.filter((p) => p.status === "offline").length,
-    }),
-    [],
-  );
-
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     ensureMapWorker();
@@ -155,16 +147,11 @@ export default function TraxonMap({
           event.stopPropagation();
           const personIndex = personnel.findIndex((item) => item.id === person.id);
           if (personIndex < 0) return;
+          if (selectedRef.current === personIndex) {
+            onSelectRef.current(-1);
+            return;
+          }
           onSelectRef.current(personIndex);
-          setPopup({
-            id: person.id,
-            name: person.name,
-            status: person.status,
-            hr: person.hr,
-            temperature: person.temp,
-            battery: person.battery,
-            kind: "personnel",
-          });
           map.easeTo({ center: [person.lng, person.lat], duration: 450 });
         });
         const marker = new Marker({ element: el, anchor: "center" })
@@ -226,6 +213,16 @@ export default function TraxonMap({
       map.getCanvas().style.cursor = "";
     };
 
+    const onMapClick = (event: MapMouseEvent) => {
+      const target = event.originalEvent.target as HTMLElement | null;
+      if (target?.closest(".mesh-node")) return;
+      const hit = INTERACTIVE_LAYERS.some((layerId) => map.getLayer(layerId) && map.queryRenderedFeatures(event.point, { layers: [layerId] }).length);
+      if (hit) return;
+      onSelectRef.current(-1);
+      setPopup(null);
+    };
+    map.on("click", onMapClick);
+
     for (const layerId of INTERACTIVE_LAYERS) {
       map.on("click", layerId, onClick);
       map.on("mousemove", layerId, onMove);
@@ -234,6 +231,7 @@ export default function TraxonMap({
 
     return () => {
       resizeObserver.disconnect();
+      map.off("click", onMapClick);
       for (const layerId of INTERACTIVE_LAYERS) {
         map.off("click", layerId, onClick);
         map.off("mousemove", layerId, onMove);
@@ -289,8 +287,17 @@ export default function TraxonMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    const person = personnel[selected];
-    if (!person) return;
+    const person = selected >= 0 ? personnel[selected] : undefined;
+    if (!person) {
+      setPopup(null);
+      if (map?.getSource("personnel")) {
+        for (const item of personnel) {
+          map.setFeatureState({ source: "personnel", id: item.id }, { selected: false });
+        }
+      }
+      syncPersonMarkers();
+      return;
+    }
 
     setPopup({
       id: person.id,
@@ -347,20 +354,6 @@ export default function TraxonMap({
   return (
     <div className="map-canvas cmd-map tf-map">
       <div className="tf-topbar">
-        <div className="tf-top-left">
-          <div className="tf-status-pills">
-            <button type="button" className={`tf-pill online${filter === "online" ? " on" : ""}`} onClick={() => setFilter(filter === "online" ? "all" : "online")}>
-              <i /> Online {counts.online}
-            </button>
-            <button type="button" className={`tf-pill alert${filter === "warning" ? " on" : ""}`} onClick={() => setFilter(filter === "warning" ? "all" : "warning")}>
-              <i /> Alert {counts.alert}
-            </button>
-            <button type="button" className={`tf-pill offline${filter === "offline" ? " on" : ""}`} onClick={() => setFilter(filter === "offline" ? "all" : "offline")}>
-              <i /> Offline {counts.offline}
-            </button>
-          </div>
-        </div>
-
         <div className="tf-top-right">
           <label className="cmd-map-search">
             <Icon name="search" size={14} />
@@ -412,23 +405,21 @@ export default function TraxonMap({
             <div className="cmd-map-popup-stats">
               <span>
                 <small>HR</small>
-                <strong className="hr">
-                  {popup.hr ?? "—"}
-                  {popup.hr ? " BPM" : ""}
-                </strong>
+                <strong className="hr">{popup.hr ?? "—"}</strong>
+                {popup.hr ? <em>BPM</em> : null}
               </span>
               <span>
                 <small>Temp</small>
                 <strong className="temp">
                   {popup.temperature ?? "—"}
-                  {popup.temperature ? " °C" : ""}
+                  {popup.temperature ? <em> °C</em> : null}
                 </strong>
               </span>
               <span>
                 <small>Battery</small>
                 <strong className="bat">
                   {popup.battery ?? "—"}
-                  {popup.battery != null ? "%" : ""}
+                  {popup.battery != null ? <em>%</em> : null}
                 </strong>
               </span>
             </div>

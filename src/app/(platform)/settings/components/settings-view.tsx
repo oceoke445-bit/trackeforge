@@ -52,9 +52,9 @@ export default function SettingsView() {
 
   return (
     <div className="settings-page">
-      <header className="settings-head">
-        <span className="settings-head-icon">
-          <Icon name="settings" size={16} />
+      <header className="settings-head page-title">
+        <span className="page-title-icon">
+          <Icon name="settings" size={15} />
         </span>
         <div>
           <h1>Settings</h1>

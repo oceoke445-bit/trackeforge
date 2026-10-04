@@ -29,6 +29,7 @@ export default function GroupsGeofencePage() {
   const [listType, setListType] = useState<"all" | GeofenceType>("all");
   const [listStatus, setListStatus] = useState<"all" | GeofenceStatus>("all");
   const [listGroup, setListGroup] = useState("all");
+  const [listPage, setListPage] = useState(1);
   const [selectedId, setSelectedId] = useState(GEOFENCES[0]?.id ?? "");
   const [checked, setChecked] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(true);
@@ -63,15 +64,22 @@ export default function GroupsGeofencePage() {
     });
   }, [listGroup, listQuery, listStatus, listType]);
 
-  const allChecked = rows.length > 0 && rows.every((row) => checked.includes(row.id));
+  const pageSize = 5;
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const currentPage = Math.min(listPage, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageRows = rows.slice(pageStart, pageStart + pageSize);
+  const rangeStart = rows.length === 0 ? 0 : pageStart + 1;
+  const rangeEnd = Math.min(pageStart + pageSize, rows.length);
+  const allChecked = pageRows.length > 0 && pageRows.every((row) => checked.includes(row.id));
 
   function toggleCheck(id: string) {
     setChecked((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   }
 
   function toggleAll() {
-    if (allChecked) setChecked((prev) => prev.filter((id) => !rows.some((row) => row.id === id)));
-    else setChecked((prev) => [...new Set([...prev, ...rows.map((row) => row.id)])]);
+    if (allChecked) setChecked((prev) => prev.filter((id) => !pageRows.some((row) => row.id === id)));
+    else setChecked((prev) => [...new Set([...prev, ...pageRows.map((row) => row.id)])]);
   }
 
   function removeDraftGroup(group: string) {
@@ -94,7 +102,8 @@ export default function GroupsGeofencePage() {
 
   return (
     <div className={`gfn-page ${createOpen ? "drawer-on" : ""}`}>
-      <header className="gfn-head">
+      <header className="gfn-head page-title">
+        <span className="page-title-icon"><Icon name="shield" size={15} /></span>
         <div>
           <h1>Geofences</h1>
           <p>Create and manage geofences to monitor movements, restrict areas, and receive alerts.</p>
@@ -126,7 +135,7 @@ export default function GroupsGeofencePage() {
       <section className="gfn-stats">
         <article>
           <span className="gfn-stat-icon blue">
-            <Icon name="pin" size={18} />
+            <Icon name="pin" size={15} />
           </span>
           <div>
             <small>Total Geofences</small>
@@ -138,7 +147,7 @@ export default function GroupsGeofencePage() {
         </article>
         <article>
           <span className="gfn-stat-icon green">
-            <Icon name="check" size={18} />
+            <Icon name="check" size={15} />
           </span>
           <div>
             <small>Active</small>
@@ -150,7 +159,7 @@ export default function GroupsGeofencePage() {
         </article>
         <article>
           <span className="gfn-stat-icon gray">
-            <Icon name="pause" size={18} />
+            <Icon name="pause" size={15} />
           </span>
           <div>
             <small>Inactive</small>
@@ -162,7 +171,7 @@ export default function GroupsGeofencePage() {
         </article>
         <article>
           <span className="gfn-stat-icon red">
-            <Icon name="warn" size={18} />
+            <Icon name="warn" size={15} />
           </span>
           <div>
             <small>Triggered Today</small>
@@ -181,6 +190,12 @@ export default function GroupsGeofencePage() {
 
         {createOpen ? (
           <aside className="panel gfn-drawer">
+            <header className="gfn-drawer-head">
+              <h2>Create Geofence</h2>
+              <button type="button" aria-label="Close" onClick={() => setCreateOpen(false)}>
+                ×
+              </button>
+            </header>
             <nav className="gfn-steps" aria-label="Create steps">
               {CREATE_STEPS.map((label, index) => (
                 <button
@@ -228,8 +243,9 @@ export default function GroupsGeofencePage() {
                             checked={draftType === type}
                             onChange={() => setDraftType(type)}
                           />
+                          <span className="gfn-radio" />
                           <span className="gfn-type-ico">
-                            <Icon name={TYPE_ICON[type]} size={16} />
+                            <Icon name={TYPE_ICON[type]} size={13} />
                           </span>
                           <strong>{TYPE_META[type].label}</strong>
                           <small>{TYPE_META[type].hint}</small>
@@ -258,19 +274,29 @@ export default function GroupsGeofencePage() {
                     <span>
                       Assigned Groups <em>(optional)</em>
                     </span>
-                    <div className="gfn-tag-input">
+                    <div className="gfn-tag-input" onClick={() => setGroupMenuOpen((v) => !v)}>
                       {draftGroups.map((group) => (
-                        <button key={group} type="button" className="gfn-tag" onClick={() => removeDraftGroup(group)}>
+                        <button key={group} type="button" className="gfn-tag" onClick={(event) => {
+                          event.stopPropagation();
+                          removeDraftGroup(group);
+                        }}>
                           {group} <span aria-hidden="true">×</span>
                         </button>
                       ))}
-                      <button
-                        type="button"
-                        className="gfn-tag-add"
-                        onClick={() => setGroupMenuOpen((v) => !v)}
-                      >
-                        + Add
-                      </button>
+                      {!draftGroups.length ? <span className="gfn-tag-placeholder">Add group</span> : null}
+                      {draftGroups.length ? (
+                        <button
+                          type="button"
+                          className="gfn-tag-clear"
+                          aria-label="Clear groups"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setDraftGroups([]);
+                          }}
+                        >
+                          ×
+                        </button>
+                      ) : null}
                     </div>
                     {groupMenuOpen ? (
                       <div className="gfn-tag-menu">
@@ -323,11 +349,14 @@ export default function GroupsGeofencePage() {
               <Icon name="search" size={14} />
               <input
                 value={listQuery}
-                onChange={(e) => setListQuery(e.target.value)}
+                onChange={(e) => {
+                  setListQuery(e.target.value);
+                  setListPage(1);
+                }}
                 placeholder="Search geofence..."
               />
             </label>
-            <select value={listType} onChange={(e) => setListType(e.target.value as "all" | GeofenceType)}>
+            <select value={listType} onChange={(e) => { setListType(e.target.value as "all" | GeofenceType); setListPage(1); }}>
               <option value="all">All Types</option>
               {GEOFENCE_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -335,12 +364,12 @@ export default function GroupsGeofencePage() {
                 </option>
               ))}
             </select>
-            <select value={listStatus} onChange={(e) => setListStatus(e.target.value as "all" | GeofenceStatus)}>
+            <select value={listStatus} onChange={(e) => { setListStatus(e.target.value as "all" | GeofenceStatus); setListPage(1); }}>
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-            <select value={listGroup} onChange={(e) => setListGroup(e.target.value)}>
+            <select value={listGroup} onChange={(e) => { setListGroup(e.target.value); setListPage(1); }}>
               <option value="all">All Groups</option>
               {GROUPS.map((group) => (
                 <option key={group} value={group}>
@@ -369,7 +398,7 @@ export default function GroupsGeofencePage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((zone) => (
+              {pageRows.map((zone) => (
                 <tr
                   key={zone.id}
                   className={selectedId === zone.id ? "on" : ""}
@@ -389,7 +418,7 @@ export default function GroupsGeofencePage() {
                   </td>
                   <td>
                     <span className={`gfn-type-pill ${zone.type}`}>
-                      <Icon name={TYPE_ICON[zone.type]} size={13} />
+                      <Icon name={TYPE_ICON[zone.type]} size={11} />
                       {TYPE_META[zone.type].label}
                     </span>
                   </td>
@@ -405,13 +434,13 @@ export default function GroupsGeofencePage() {
                   <td>{zone.lastTriggered ?? "—"}</td>
                   <td className="gfn-actions" onClick={(e) => e.stopPropagation()}>
                     <button type="button" aria-label="Edit" onClick={openCreate}>
-                      <Icon name="pencil" size={14} />
+                      <Icon name="pencil" size={12} />
                     </button>
                     <button type="button" aria-label="Duplicate">
-                      <Icon name="copy" size={14} />
+                      <Icon name="copy" size={12} />
                     </button>
                     <button type="button" aria-label="Delete" className="danger">
-                      <Icon name="trash" size={14} />
+                      <Icon name="trash" size={12} />
                     </button>
                   </td>
                 </tr>
@@ -425,6 +454,24 @@ export default function GroupsGeofencePage() {
               ) : null}
             </tbody>
           </table>
+        </div>
+        <div className="cmd-pager">
+          <span>
+            {rangeStart}–{rangeEnd} of {rows.length}
+          </span>
+          <div>
+            <button type="button" disabled={currentPage === 1} onClick={() => setListPage(currentPage - 1)} aria-label="Previous page">
+              <Icon name="chevron" size={14} />
+            </button>
+            {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+              <button key={number} type="button" className={number === currentPage ? "on" : ""} onClick={() => setListPage(number)}>
+                {number}
+              </button>
+            ))}
+            <button type="button" disabled={currentPage === pageCount} onClick={() => setListPage(currentPage + 1)} aria-label="Next page">
+              <Icon name="chevron" size={14} />
+            </button>
+          </div>
         </div>
       </section>
     </div>

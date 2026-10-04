@@ -31,7 +31,7 @@ export default function PersonalMap({ person }: { person: PersonalProfile }) {
       container: containerRef.current,
       style: buildBaseStyle(mode),
       center: [person.lng, person.lat],
-      zoom: 13.6,
+      zoom: 13.8,
       pitch: 28,
       bearing: -8,
       attributionControl: false,
@@ -75,7 +75,7 @@ export default function PersonalMap({ person }: { person: PersonalProfile }) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    map.easeTo({ center: [person.lng, person.lat], zoom: 13.8, duration: 800 });
+    map.easeTo({ center: [person.lng, person.lat], zoom: 13.8, pitch: 28, bearing: -8, duration: 800 });
     for (const marker of markersRef.current) {
       const el = marker.getElement();
       const code = el.querySelector("strong")?.textContent;

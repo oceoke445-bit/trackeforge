@@ -131,7 +131,8 @@ export default function NotificationsPage() {
 
   return (
     <div className={`ntf-page${detailOpen ? " has-detail" : ""}`}>
-      <header className="ntf-head">
+      <header className="ntf-head page-title">
+        <span className="page-title-icon"><Icon name="bell" size={15} /></span>
         <div>
           <h1>Notifications</h1>
           <p>Real-time alerts, system events, and important updates from across the platform.</p>

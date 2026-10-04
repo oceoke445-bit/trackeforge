@@ -28,7 +28,7 @@ export default function Sidebar({
               const active = pathname === item.href;
               return (
                 <Link key={item.href} href={item.href} className={active ? "active" : ""}>
-                  <Icon name={item.icon} />
+                  <Icon name={item.icon} size={15} />
                   <span>{item.label}</span>
                   {item.label === "Alerts" && <b>36</b>}
                 </Link>

@@ -113,18 +113,14 @@ function hydrateLayers(map: Map) {
   upsert("wpn-area", AREA_GREEN);
   upsert("wpn-restricted", AREA_RESTRICTED);
 
+  if (map.getLayer("wpn-area-line")) map.removeLayer("wpn-area-line");
+
   if (!map.getLayer("wpn-area-fill")) {
     map.addLayer({
       id: "wpn-area-fill",
       type: "fill",
       source: "wpn-area",
       paint: { "fill-color": "#00D99A", "fill-opacity": 0.12 },
-    });
-    map.addLayer({
-      id: "wpn-area-line",
-      type: "line",
-      source: "wpn-area",
-      paint: { "line-color": "#34D399", "line-width": 2, "line-dasharray": [2, 1.2] },
     });
     map.addLayer({
       id: "wpn-restricted-fill",

@@ -121,7 +121,7 @@ function Donut({
 }
 
 export default function Overview() {
-  const [selected, setSelected] = useState(4);
+  const [selected, setSelected] = useState(-1);
   const [tableFilter, setTableFilter] = useState<"all" | PersonnelStatus>("all");
   const [tableQuery, setTableQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -145,7 +145,8 @@ export default function Overview() {
 
   return (
     <div className="cmd-page">
-      <header className="cmd-head">
+      <header className="cmd-head page-title">
+        <span className="cmd-head-icon page-title-icon"><Icon name="grid" size={15} /></span>
         <div>
           <h1>Command Overview</h1>
           <p>Real-time overview of all personnel, weapons, and operational assets.</p>
@@ -161,17 +162,16 @@ export default function Overview() {
                   className="cmd-ring"
                   style={{ background: `conic-gradient(#34d399 ${stat.ring}%, rgba(52, 211, 153, 0.18) 0)` }}
                 />
-                <Icon name={stat.icon} size={16} />
+                <Icon name={stat.icon} size={14} />
               </span>
             ) : (
               <span className={`cmd-stat-icon ${stat.iconTone ?? "blue"}`}>
-                <Icon name={stat.icon} size={18} />
+                <Icon name={stat.icon} size={15} />
               </span>
             )}
             <div className="cmd-stat-copy">
               <small>{stat.label}</small>
               <strong>{stat.value}</strong>
-              <em>{stat.meta}</em>
             </div>
           </article>
         ))}
@@ -197,7 +197,7 @@ export default function Overview() {
               {activeAlerts.map((alert) => (
                 <article key={alert.title + alert.time} className={`cmd-alert ${alert.level}`}>
                   <span className="cmd-alert-icon">
-                    <Icon name={alert.icon} size={15} />
+                    <Icon name={alert.icon} size={13} />
                   </span>
                   <div>
                     <strong>{alert.title}</strong>
@@ -246,7 +246,7 @@ export default function Overview() {
               <p>Live roster and vitals</p>
             </div>
             <label className="cmd-table-search">
-              <Icon name="search" size={14} />
+              <Icon name="search" size={13} />
               <input
                 value={tableQuery}
                 onChange={(e) => {
@@ -310,7 +310,10 @@ export default function Overview() {
                   <tr
                     key={person.id}
                     className={personnel.indexOf(person) === selected ? "selected" : ""}
-                    onClick={() => setSelected(personnel.indexOf(person))}
+                    onClick={() => {
+                      const index = personnel.indexOf(person);
+                      setSelected((current) => (current === index ? -1 : index));
+                    }}
                   >
                     <td>
                       <code>{person.id}</code>
@@ -331,7 +334,7 @@ export default function Overview() {
                     <td>{person.lastSeen}</td>
                     <td>
                       <button type="button" aria-label="Actions" onClick={(e) => e.stopPropagation()}>
-                        <Icon name="more" size={16} />
+                        <Icon name="more" size={14} />
                       </button>
                     </td>
                   </tr>
@@ -366,7 +369,7 @@ export default function Overview() {
               <p>Vitals distribution across the force</p>
             </div>
             <span className="cmd-mini-icon green" aria-hidden="true">
-              <Icon name="heart" size={16} />
+              <Icon name="heart" size={13} />
             </span>
           </div>
           <div className="cmd-health-body">
@@ -396,7 +399,7 @@ export default function Overview() {
           <div className="cmd-mini-grid">
             <div>
               <span className="cmd-mini-icon green">
-                <Icon name="heart" size={15} />
+                <Icon name="heart" size={13} />
               </span>
               <div>
                 <small>Avg Heart Rate</small>
@@ -405,7 +408,7 @@ export default function Overview() {
             </div>
             <div>
               <span className="cmd-mini-icon amber">
-                <Icon name="thermo" size={15} />
+                <Icon name="thermo" size={13} />
               </span>
               <div>
                 <small>Avg Temperature</small>
@@ -414,7 +417,7 @@ export default function Overview() {
             </div>
             <div>
               <span className="cmd-mini-icon amber">
-                <Icon name="bolt" size={15} />
+                <Icon name="bolt" size={13} />
               </span>
               <div>
                 <small>Low Battery</small>
@@ -423,7 +426,7 @@ export default function Overview() {
             </div>
             <div>
               <span className="cmd-mini-icon red">
-                <Icon name="bell" size={15} />
+                <Icon name="bell" size={13} />
               </span>
               <div>
                 <small>Health Alerts</small>

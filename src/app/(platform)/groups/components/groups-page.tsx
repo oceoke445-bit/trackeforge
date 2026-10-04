@@ -115,7 +115,9 @@ function Donut({
 export default function GroupsPage() {
   const [selectedId, setSelectedId] = useState<GroupId>("alpha");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [healthHover, setHealthHover] = useState<number | null>(null);
+  const pageSize = 5;
 
   const group = groups.find((item) => item.id === selectedId) ?? groups[0];
   const stats = groupStats(group);
@@ -127,6 +129,12 @@ export default function GroupsPage() {
       `${member.id} ${member.name} ${member.rank} ${member.weapon}`.toLowerCase().includes(q),
     );
   }, [group, query]);
+  const pageCount = Math.max(1, Math.ceil(members.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageRows = members.slice(pageStart, pageStart + pageSize);
+  const rangeStart = members.length === 0 ? 0 : pageStart + 1;
+  const rangeEnd = Math.min(pageStart + pageSize, members.length);
 
   const health = useMemo(() => {
     const normal = group.members.filter((m) => m.status === "online").length;
@@ -151,7 +159,8 @@ export default function GroupsPage() {
 
   return (
     <div className="grp-page">
-      <header className="grp-head">
+      <header className="grp-head page-title">
+        <span className="page-title-icon"><Icon name="layers" size={15} /></span>
         <div>
           <h1>Groups</h1>
           <p>Manage and monitor operational groups, their personnel, assets, and mission status.</p>
@@ -166,7 +175,10 @@ export default function GroupsPage() {
               key={item.id}
               type="button"
               className={`grp-card ${item.tone}${selectedId === item.id ? " on" : ""}`}
-              onClick={() => setSelectedId(item.id)}
+              onClick={() => {
+                setSelectedId(item.id);
+                setPage(1);
+              }}
             >
               <span className="grp-card-icon">
                 <Icon name={item.emblem} size={18} />
@@ -222,7 +234,10 @@ export default function GroupsPage() {
                 <Icon name="search" size={14} />
                 <input
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setPage(1);
+                  }}
                   placeholder="Search personnel..."
                 />
               </label>
@@ -248,7 +263,7 @@ export default function GroupsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map((member) => (
+                  {pageRows.map((member) => (
                     <tr key={member.id} className={member.status}>
                       <td>
                         <code>{member.id}</code>
@@ -284,6 +299,24 @@ export default function GroupsPage() {
                 </tbody>
               </table>
             </div>
+            <div className="cmd-pager">
+              <span>
+                {rangeStart}–{rangeEnd} of {members.length}
+              </span>
+              <div>
+                <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Previous page">
+                  <Icon name="chevron" size={14} />
+                </button>
+                {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+                  <button key={number} type="button" className={number === currentPage ? "on" : ""} onClick={() => setPage(number)}>
+                    {number}
+                  </button>
+                ))}
+                <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="Next page">
+                  <Icon name="chevron" size={14} />
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -308,32 +341,32 @@ export default function GroupsPage() {
               </div>
               <div className="grp-status-grid">
                 <div>
-                  <Icon name="users" size={14} />
+                  <Icon name="users" size={12} />
                   <small>Personnel</small>
                   <strong>{stats.personnel}</strong>
                 </div>
                 <div>
-                  <Icon name="signal" size={14} />
+                  <Icon name="signal" size={12} />
                   <small>Online</small>
                   <strong className="ok">{stats.online}</strong>
                 </div>
                 <div>
-                  <Icon name="bell" size={14} />
+                  <Icon name="bell" size={12} />
                   <small>Alerts</small>
                   <strong className="bad">{stats.alerts}</strong>
                 </div>
                 <div>
-                  <Icon name="crosshair" size={14} />
+                  <Icon name="crosshair" size={12} />
                   <small>Weapons</small>
                   <strong>{stats.weapons}</strong>
                 </div>
                 <div>
-                  <Icon name="signal" size={14} />
+                  <Icon name="signal" size={12} />
                   <small>Coverage</small>
                   <strong>{group.coverage}%</strong>
                 </div>
                 <div>
-                  <Icon name="clock" size={14} />
+                  <Icon name="clock" size={12} />
                   <small>Avg. Latency</small>
                   <strong>{group.latency}</strong>
                 </div>
@@ -368,7 +401,7 @@ export default function GroupsPage() {
               <div className="grp-vitals">
                 <div>
                   <span className="cmd-mini-icon green">
-                    <Icon name="heart" size={15} />
+                    <Icon name="heart" size={13} />
                   </span>
                   <div>
                     <small>Avg Heart Rate</small>
@@ -378,7 +411,7 @@ export default function GroupsPage() {
                 </div>
                 <div>
                   <span className="cmd-mini-icon amber">
-                    <Icon name="thermo" size={15} />
+                    <Icon name="thermo" size={13} />
                   </span>
                   <div>
                     <small>Avg Temperature</small>

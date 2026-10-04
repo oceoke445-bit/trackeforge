@@ -81,18 +81,14 @@ function hydrateLayers(map: Map, group: GroupInfo) {
   upsert("group-area", area);
   upsert("group-restricted", RESTRICTED);
 
+  if (map.getLayer("group-area-line")) map.removeLayer("group-area-line");
+
   if (!map.getLayer("group-area-fill")) {
     map.addLayer({
       id: "group-area-fill",
       type: "fill",
       source: "group-area",
       paint: { "fill-color": "#00D99A", "fill-opacity": 0.14 },
-    });
-    map.addLayer({
-      id: "group-area-line",
-      type: "line",
-      source: "group-area",
-      paint: { "line-color": "#34D399", "line-width": 2, "line-dasharray": [2, 1.2] },
     });
     map.addLayer({
       id: "group-area-label",
