@@ -5,6 +5,7 @@ import { Map as MapLibreMap, Marker, setWorkerUrl, type Map } from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css";
 import Icon from "@/components/ui/icon";
 import { buildBaseStyle, type MapMode } from "@/components/map/styles";
+import { bindGeofenceOverlay } from "@/components/map/geofence-overlay";
 import { personalProfiles, type PersonalProfile } from "./personal-data";
 
 let workerReady = false;
@@ -37,6 +38,7 @@ export default function PersonalMap({ person }: { person: PersonalProfile }) {
       attributionControl: false,
     });
     mapRef.current = map;
+    const unbindGeofences = bindGeofenceOverlay(map);
 
     map.on("load", () => {
       for (const item of personalProfiles) {
@@ -54,6 +56,7 @@ export default function PersonalMap({ person }: { person: PersonalProfile }) {
     ro.observe(containerRef.current);
 
     return () => {
+      unbindGeofences();
       ro.disconnect();
       for (const marker of markersRef.current) marker.remove();
       markersRef.current = [];

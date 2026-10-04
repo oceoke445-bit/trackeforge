@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Dropdown from "@/components/ui/dropdown";
 import Icon from "@/components/ui/icon";
 import OperationsMap from "./operations-map";
-import { OP_TABS, OPERATIONS, type OpLayers, type OpStatus, type Operation } from "./operations-data";
+import { OPERATIONS, type OpLayers, type OpStatus, type Operation } from "./operations-data";
 
 const STATUSES: Array<"All Status" | OpStatus> = ["All Status", "Active", "Ongoing", "Planning", "Completed", "Cancelled"];
 
@@ -16,7 +17,6 @@ export default function OperationsPage() {
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("All Status");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [tab, setTab] = useState<(typeof OP_TABS)[number]>("Overview");
   const [layers, setLayers] = useState<OpLayers>(EMPTY);
   const [editor, setEditor] = useState<"create" | "edit" | null>(null);
   const [draft, setDraft] = useState({ name: "", status: "Planning" as OpStatus, startAt: "", endAt: "", sector: "", summary: "" });
@@ -81,7 +81,6 @@ export default function OperationsPage() {
       setPage(1);
     }
     setEditor(null);
-    setTab("Overview");
   }
 
   return (
@@ -101,13 +100,11 @@ export default function OperationsPage() {
             <button type="button" className="primary" onClick={() => openEditor("create")}><Icon name="plus" size={13} /> New Operation</button>
           </div>
           <div className="ops-tools">
-            <select value={status} onChange={(event) => { setStatus(event.target.value as (typeof STATUSES)[number]); setPage(1); }}>
-              {STATUSES.map((item) => <option key={item}>{item}</option>)}
-            </select>
+            <Dropdown value={status} onChange={(value) => { setStatus(value as (typeof STATUSES)[number]); setPage(1); }} options={[...STATUSES]} ariaLabel="Status" />
           </div>
           <div className="ops-cards">
             {visible.map((item) => (
-              <button key={item.id} type="button" className={item.id === selected?.id ? "on" : ""} onClick={() => { setSelectedId(item.id); setTab("Overview"); }}>
+              <button key={item.id} type="button" className={item.id === selected?.id ? "on" : ""} onClick={() => setSelectedId(item.id)}>
                 <img src={item.photo} alt="" style={{ objectPosition: item.focus }} />
                 <span>
                   <strong>{item.name}</strong>
@@ -128,10 +125,7 @@ export default function OperationsPage() {
               ))}
               <button type="button" aria-label="Next" disabled={current === pages} onClick={() => setPage(current + 1)}><Icon name="chevron" size={14} /></button>
             </div>
-            <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}>
-              <option value={6}>6 / page</option>
-              <option value={10}>10 / page</option>
-            </select>
+            <Dropdown value={`${pageSize} / page`} onChange={(value) => { setPageSize(Number(value.replace(" / page", ""))); setPage(1); }} options={["6 / page", "10 / page"]} ariaLabel="Page size" />
           </footer>
         </aside>
 
@@ -147,36 +141,22 @@ export default function OperationsPage() {
               <button type="button" className="primary" onClick={() => openEditor("edit")}><Icon name="pencil" size={13} /> Edit Operation</button>
               <button type="button" aria-label="More" onClick={() => openEditor("edit")}><Icon name="more" size={14} /></button>
             </header>
-            <nav>
-              {OP_TABS.map((item) => (
-                <button key={item} type="button" className={tab === item ? "on" : ""} onClick={() => setTab(item)}>{item}</button>
-              ))}
-            </nav>
-
-            {tab === "Overview" || tab === "Area & Geofence" ? (
-              <>
-                {tab === "Overview" ? (
-                  <div className="ops-stats">
-                    <article><span className="blue"><Icon name="users" size={15} /></span><div><strong>{selected.groups}</strong><small>Groups</small><em className="ok">{selected.groupsActive} active</em></div></article>
-                    <article><span className="green"><Icon name="user" size={15} /></span><div><strong>{selected.personnel}</strong><small>Personnel</small><em className="ok">{selected.personnelOnline} online</em></div></article>
-                    <article><span className="green"><Icon name="crosshair" size={15} /></span><div><strong>{selected.weapons}</strong><small>Weapons</small><em className="ok">{selected.weaponsOnline} online</em></div></article>
-                    <article><span className="red"><Icon name="warn" size={15} /></span><div><strong>{selected.alerts}</strong><small>Active Alerts</small><em className="bad">{selected.critical} critical</em></div></article>
-                    <article><span className="blue"><Icon name="calendar" size={15} /></span><div><strong>{selected.days}</strong><small>Duration</small><em>{selected.start.slice(0, 2)} - {selected.end}</em></div></article>
-                  </div>
-                ) : null}
-                <div className="ops-map-wrap">
+            <div className="ops-stats">
+              <article><span className="blue"><Icon name="users" size={15} /></span><div><strong>{selected.groups}</strong><small>Groups</small><em className="ok">{selected.groupsActive} active</em></div></article>
+              <article><span className="green"><Icon name="user" size={15} /></span><div><strong>{selected.personnel}</strong><small>Personnel</small><em className="ok">{selected.personnelOnline} online</em></div></article>
+              <article><span className="green"><Icon name="crosshair" size={15} /></span><div><strong>{selected.weapons}</strong><small>Weapons</small><em className="ok">{selected.weaponsOnline} online</em></div></article>
+              <article><span className="red"><Icon name="warn" size={15} /></span><div><strong>{selected.alerts}</strong><small>Active Alerts</small><em className="bad">{selected.critical} critical</em></div></article>
+              <article><span className="blue"><Icon name="calendar" size={15} /></span><div><strong>{selected.days}</strong><small>Duration</small><em>{selected.start.slice(0, 2)} - {selected.end}</em></div></article>
+            </div>
+            <div className="ops-map-wrap">
                   <OperationsMap operation={selected} layers={layers} />
                   <div className="ops-layers">
                     {(Object.keys(layers) as (keyof OpLayers)[]).map((key) => (
                       <label key={key}><input type="checkbox" checked={layers[key]} onChange={() => setLayers({ ...layers, [key]: !layers[key] })} /> {key[0].toUpperCase() + key.slice(1)}</label>
                     ))}
                   </div>
-                </div>
-              </>
-            ) : null}
-
-            {tab === "Overview" ? (
-              <div className="ops-lower">
+            </div>
+            <div className="ops-lower">
                 <article>
                   <header><h3>Operation Information</h3><button type="button" onClick={() => openEditor("edit")}><Icon name="pencil" size={12} /> Edit</button></header>
                   <dl>
@@ -192,15 +172,15 @@ export default function OperationsPage() {
                   </dl>
                 </article>
                 <article>
-                  <header><h3>Groups ({selected.groupRows.length})</h3><button type="button" onClick={() => setTab("Groups")}>View All</button></header>
+                  <header><h3>Groups ({selected.groupRows.length})</h3></header>
                   {selected.groupRows.map((row) => (
-                    <button key={row.name} type="button" className="ops-row" onClick={() => setTab("Groups")}>
-                      <Icon name="users" size={13} /><strong>{row.name}</strong><small>{row.count} personnel</small><em className={row.status.toLowerCase()}>{row.status}</em><Icon name="chevron" size={12} />
-                    </button>
+                    <div key={row.name} className="ops-row">
+                      <Icon name="users" size={13} /><strong>{row.name}</strong><small>{row.count} personnel</small><em className={row.status.toLowerCase()}>{row.status}</em>
+                    </div>
                   ))}
                 </article>
                 <article>
-                  <header><h3>Alerts ({selected.alertRows.length})</h3><button type="button" onClick={() => setTab("Alerts")}>View All</button></header>
+                  <header><h3>Alerts ({selected.alertRows.length})</h3></header>
                   {selected.alertRows.length ? selected.alertRows.map((row) => (
                     <div key={row.title} className="ops-alert">
                       <Icon name="warn" size={13} />
@@ -211,7 +191,7 @@ export default function OperationsPage() {
                   )) : <p className="ops-empty">No alerts.</p>}
                 </article>
                 <article>
-                  <header><h3>Communication</h3><button type="button" onClick={() => setTab("Communication")}>View All</button></header>
+                  <header><h3>Communication</h3></header>
                   <div className="ops-gw"><Icon name="server" size={14} /><strong>{selected.gateway}</strong><small>{selected.gatewayPlace}</small><em className="online">Online</em></div>
                   <dl>
                     <dt>Last Uplink</dt><dd>{selected.uplink}</dd>
@@ -219,46 +199,12 @@ export default function OperationsPage() {
                   </dl>
                 </article>
                 <article>
-                  <header><h3>Recent Timeline</h3><button type="button" onClick={() => setTab("Timeline")}>View All</button></header>
+                  <header><h3>Recent Timeline</h3></header>
                   {selected.timeline.map((row) => (
                     <div key={row.time + row.text} className="ops-time"><b>{row.time}</b><span>{row.text}</span></div>
                   ))}
                 </article>
-              </div>
-            ) : null}
-
-            {tab === "Groups" || tab === "Personnel" ? (
-              <div className="ops-plain">
-                {selected.groupRows.map((row) => (
-                  <article key={row.name} className="panel">
-                    <strong>{row.name}</strong>
-                    <small>{row.count} personnel</small>
-                    <em className={row.status.toLowerCase()}>{row.status}</em>
-                  </article>
-                ))}
-              </div>
-            ) : null}
-            {tab === "Communication" ? (
-              <article className="ops-plain-card">
-                <div className="ops-gw"><Icon name="server" size={14} /><strong>{selected.gateway}</strong><small>{selected.gatewayPlace}</small><em className="online">Online</em></div>
-                <dl>
-                  <dt>Last Uplink</dt><dd>{selected.uplink}</dd>
-                  <dt>Signal Strength</dt><dd className="ops-bars">{Array.from({ length: 5 }, (_, index) => <i key={index} className={index < selected.signal ? "on" : ""} />)}</dd>
-                </dl>
-              </article>
-            ) : null}
-            {tab === "Alerts" ? (
-              <div className="ops-plain">
-                {selected.alertRows.length ? selected.alertRows.map((row) => (
-                  <article key={row.title} className="panel ops-alert"><Icon name="warn" size={14} /><strong>{row.title}</strong><small>{row.detail}</small><em className={row.level.toLowerCase()}>{row.level}</em></article>
-                )) : <p className="ops-empty">No alerts for this operation.</p>}
-              </div>
-            ) : null}
-            {tab === "Timeline" ? (
-              <div className="ops-plain">
-                {selected.timeline.map((row) => <article key={row.time + row.text} className="panel ops-time"><b>{row.time}</b><span>{row.text}</span></article>)}
-              </div>
-            ) : null}
+            </div>
           </section>
         ) : null}
       </div>
@@ -269,9 +215,7 @@ export default function OperationsPage() {
             <header><h2>{editor === "edit" ? "Edit Operation" : "New Operation"}</h2><button type="button" aria-label="Close" onClick={() => setEditor(null)}><Icon name="close" size={14} /></button></header>
             <label>Operation Name<input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label>
             <label>Status
-              <select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as OpStatus })}>
-                {STATUSES.filter((item) => item !== "All Status").map((item) => <option key={item}>{item}</option>)}
-              </select>
+              <Dropdown block value={draft.status} onChange={(value) => setDraft({ ...draft, status: value as OpStatus })} options={STATUSES.filter((item) => item !== "All Status")} ariaLabel="Status" />
             </label>
             <label>Start Date<input value={draft.startAt} onChange={(event) => setDraft({ ...draft, startAt: event.target.value })} placeholder="03 Oct 2026 08:00" /></label>
             <label>End Date<input value={draft.endAt} onChange={(event) => setDraft({ ...draft, endAt: event.target.value })} placeholder="05 Oct 2026 16:00" /></label>

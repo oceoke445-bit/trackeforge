@@ -12,6 +12,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import Icon from "@/components/ui/icon";
 import { registerMapIcons } from "@/components/map/icons";
 import { buildBaseStyle, type MapMode } from "@/components/map/styles";
+import { bindGeofenceOverlay } from "@/components/map/geofence-overlay";
 import type { PersonnelStatus } from "@/app/(platform)/components/command-data";
 import type { GroupInfo, GroupMember } from "./groups-data";
 
@@ -168,6 +169,7 @@ export default function GroupMap({ group }: { group: GroupInfo }) {
       attributionControl: false,
     });
     mapRef.current = map;
+    const unbindGeofences = bindGeofenceOverlay(map);
 
     map.on("load", () => {
       hydrateLayers(map, group);
@@ -179,6 +181,7 @@ export default function GroupMap({ group }: { group: GroupInfo }) {
     if (containerRef.current.parentElement) ro.observe(containerRef.current.parentElement);
 
     return () => {
+      unbindGeofences();
       ro.disconnect();
       for (const marker of markersRef.current) marker.remove();
       markersRef.current = [];

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { Map as MapLibreMap, setWorkerUrl, type GeoJSONSource, type Map } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { buildBaseStyle } from "@/components/map/styles";
+import { bindGeofenceOverlay } from "@/components/map/geofence-overlay";
 
 let workerReady = false;
 function ensureMapWorker() {
@@ -29,6 +30,7 @@ export default function NoticeMap({ lat, lng }: { lat: number; lng: number }) {
       attributionControl: false,
     });
     mapRef.current = map;
+    const unbindGeofences = bindGeofenceOverlay(map);
 
     map.on("load", () => {
       map.addSource("notice-point", {
@@ -68,6 +70,7 @@ export default function NoticeMap({ lat, lng }: { lat: number; lng: number }) {
     if (containerRef.current.parentElement) ro.observe(containerRef.current.parentElement);
 
     return () => {
+      unbindGeofences();
       ro.disconnect();
       map.remove();
       mapRef.current = null;

@@ -5,6 +5,7 @@ import { Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONSource, type Map 
 import "maplibre-gl/dist/maplibre-gl.css";
 import Icon from "@/components/ui/icon";
 import { buildBaseStyle } from "@/components/map/styles";
+import { bindGeofenceOverlay } from "@/components/map/geofence-overlay";
 import type { Operation, OpLayers } from "./operations-data";
 
 let workerReady = false;
@@ -85,10 +86,12 @@ export default function OperationsMap({ operation, layers }: { operation: Operat
       attributionControl: false,
     });
     mapRef.current = map;
+    const unbindGeofences = bindGeofenceOverlay(map);
     map.on("load", () => paint(map));
     const ro = new ResizeObserver(() => map.resize());
     ro.observe(containerRef.current);
     return () => {
+      unbindGeofences();
       ro.disconnect();
       for (const marker of markersRef.current) marker.remove();
       markersRef.current = [];

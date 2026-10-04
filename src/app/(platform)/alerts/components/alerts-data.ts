@@ -11,13 +11,15 @@ export type GroupName = "Alpha" | "Bravo" | "Charlie" | "Delta";
 
 export type AlertItem = {
   id: string;
+  apiId?: number;
+  apiStatus?: string;
   minutesAgo: number;
   date: string;
   clock: string;
   severity: Severity;
   type: AlertType;
   soldier: string;
-  group: GroupName;
+  group: string;
   details: string;
   position: string;
   lastSeen: string;

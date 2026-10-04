@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { Map as MapLibreMap, Marker, setWorkerUrl, type Map } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { buildBaseStyle } from "@/components/map/styles";
+import { bindGeofenceOverlay } from "@/components/map/geofence-overlay";
 import type { HistoryEvent } from "./history-data";
 
 let workerReady = false;
@@ -32,6 +33,7 @@ export default function HistoryMiniMap({ event }: { event: HistoryEvent }) {
       attributionControl: false,
     });
     mapRef.current = map;
+    const unbindGeofences = bindGeofenceOverlay(map);
 
     const el = document.createElement("div");
     el.className = `hist-map-marker ${event.type.toLowerCase()}`;
@@ -44,6 +46,7 @@ export default function HistoryMiniMap({ event }: { event: HistoryEvent }) {
     ro.observe(containerRef.current);
 
     return () => {
+      unbindGeofences();
       ro.disconnect();
       markerRef.current?.remove();
       markerRef.current = null;

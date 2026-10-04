@@ -4,6 +4,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Sidebar from "@/components/Sidebar";
 import TopHeader from "@/components/TopHeader";
+import { ExplorerFeedProvider } from "@/lib/explorer-feed";
+import { GeofenceFeedProvider } from "@/lib/geofence-feed";
+import { AlertFeedProvider } from "@/lib/alert-feed";
+import { HistoryFeedProvider } from "@/lib/history-feed";
 import { hasSession } from "@/lib/session";
 import { SidebarProvider, useSidebar } from "@/lib/sidebar";
 
@@ -59,8 +63,16 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   if (!ready || !hasSession()) return null;
 
   return (
-    <SidebarProvider>
-      <Shell>{children}</Shell>
-    </SidebarProvider>
+    <ExplorerFeedProvider>
+      <GeofenceFeedProvider>
+        <AlertFeedProvider>
+          <HistoryFeedProvider>
+            <SidebarProvider>
+              <Shell>{children}</Shell>
+            </SidebarProvider>
+          </HistoryFeedProvider>
+        </AlertFeedProvider>
+      </GeofenceFeedProvider>
+    </ExplorerFeedProvider>
   );
 }

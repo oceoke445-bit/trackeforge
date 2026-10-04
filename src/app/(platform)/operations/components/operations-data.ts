@@ -387,5 +387,3 @@ export const OPERATIONS: Operation[] = [
     ...scene(106.86, -6.2, ["Alpha-1", "Bravo-1"]),
   },
 ];
-
-export const OP_TABS = ["Overview", "Groups", "Personnel", "Area & Geofence", "Communication", "Alerts", "Timeline"] as const;

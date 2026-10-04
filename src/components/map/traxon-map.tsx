@@ -23,6 +23,7 @@ import {
   type LayerGroupId,
 } from "./layers";
 import { MAP_CAMERA, TERRAIN_STATE, buildBaseStyle, type MapMode } from "./styles";
+import { bindGeofenceOverlay } from "./geofence-overlay";
 
 const PERSON_SVG =
   `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/></svg>`;
@@ -136,6 +137,7 @@ export default function TraxonMap({
     });
 
     mapRef.current = map;
+    const unbindGeofences = bindGeofenceOverlay(map);
 
     map.on("load", () => {
       hydrateMap(map, mode, visibilityRef.current);
@@ -230,6 +232,7 @@ export default function TraxonMap({
     }
 
     return () => {
+      unbindGeofences();
       resizeObserver.disconnect();
       map.off("click", onMapClick);
       for (const layerId of INTERACTIVE_LAYERS) {

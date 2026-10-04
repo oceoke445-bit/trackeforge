@@ -11,6 +11,7 @@ import {
 import "maplibre-gl/dist/maplibre-gl.css";
 import Icon from "@/components/ui/icon";
 import { buildBaseStyle } from "@/components/map/styles";
+import { bindGeofenceOverlay } from "@/components/map/geofence-overlay";
 import { MESH_LINKS, MESH_NODES, type MeshQuality } from "./mesh-data";
 
 let workerReady = false;
@@ -82,6 +83,7 @@ export default function MeshTopology({ showHop }: { showHop: boolean }) {
       attributionControl: false,
     });
     mapRef.current = map;
+    const unbindGeofences = bindGeofenceOverlay(map);
 
     const markers: Marker[] = [];
 
@@ -117,6 +119,7 @@ export default function MeshTopology({ showHop }: { showHop: boolean }) {
     observer.observe(containerRef.current);
 
     return () => {
+      unbindGeofences();
       observer.disconnect();
       markers.forEach((marker) => marker.remove());
       map.remove();

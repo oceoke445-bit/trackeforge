@@ -1,3 +1,7 @@
+import ExplorerFeedToggle from "@/components/explorer-feed-toggle";
+import GeofenceFeedToggle from "@/components/geofence-feed-toggle";
+import AlertFeedToggle from "@/components/alert-feed-toggle";
+import HistoryFeedToggle from "@/components/history-feed-toggle";
 import HeaderClock from "@/components/header-clock";
 import HeaderNotifications from "@/components/header-notifications";
 import HeaderUser from "@/components/header-user";
@@ -16,6 +20,10 @@ export default function TopHeader() {
           <kbd>⌘ K</kbd>
         </div>
       </div>
+      <ExplorerFeedToggle />
+      <GeofenceFeedToggle />
+      <AlertFeedToggle />
+      <HistoryFeedToggle />
       <div className="top-actions">
         {/* <ThemeToggle /> */}
         <HeaderClock />

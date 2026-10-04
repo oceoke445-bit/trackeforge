@@ -41,8 +41,8 @@ export const navGroups: NavGroup[] = [
   {
     label: "Communication",
     items: [
-      { label: "LoRa Mesh", icon: "signal", href: "/lora-mesh" },
-      { label: "Gateways", icon: "server", href: "/gateways" },
+      { label: "LoRa Mesh", icon: "signal", disabled: true },
+      { label: "Gateways", icon: "server", disabled: true },
     ],
   },
   {
@@ -50,7 +50,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "User Access", icon: "users", href: "/user-access" },
       { label: "Activity Log", icon: "file", href: "/activity-log" },
-      { label: "Settings", icon: "settings", href: "/settings" },
+      { label: "Settings", icon: "settings", disabled: true },
     ],
   },
 ];

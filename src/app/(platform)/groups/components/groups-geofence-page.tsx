@@ -1,20 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Icon, { type IconName } from "@/components/ui/icon";
+import { useGeofenceFeed } from "@/lib/geofence-feed";
+import {
+  createGeofence,
+  deleteGeofence,
+  fetchGeofences,
+  notifyGeofencesChanged,
+  polygonAreaKm2,
+  type GeofenceDraft,
+} from "@/lib/geofences";
 import GeofenceMap from "./geofence-map";
 import {
   GEOFENCE_TYPES,
   GEOFENCES,
   GROUPS,
   TYPE_META,
-  geofenceStats,
   type GeofenceStatus,
   type GeofenceType,
   type GeofenceZone,
 } from "./geofence-data";
 
-const CREATE_STEPS = ["Basic Info", "Area", "Rules", "Review"] as const;
+const CREATE_STEPS = ["Basic Info", "Area"] as const;
 
 const TYPE_ICON: Record<GeofenceType, IconName> = {
   restricted: "warn",
@@ -34,35 +42,73 @@ export default function GroupsGeofencePage() {
   const [checked, setChecked] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(true);
   const [step, setStep] = useState(0);
+  const [draftPoints, setDraftPoints] = useState<[number, number][]>([]);
+  const activeStep = Math.min(step, CREATE_STEPS.length - 1);
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
 
-  const [draftName, setDraftName] = useState("Restricted Area Alpha");
-  const [draftDesc, setDraftDesc] = useState("No entry zone. Enemy territory.");
-  const [draftType, setDraftType] = useState<GeofenceType>("restricted");
+  const [draftName, setDraftName] = useState("");
+  const [draftDesc, setDraftDesc] = useState("");
+  const [draftType, setDraftType] = useState<GeofenceType>("silent");
   const [draftActive, setDraftActive] = useState(true);
   const [draftGroups, setDraftGroups] = useState<string[]>(["Alpha"]);
+  const [mockZones, setMockZones] = useState(GEOFENCES);
+  const [liveZones, setLiveZones] = useState<GeofenceZone[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const { mode, pending, runId, finish, fail } = useGeofenceFeed();
 
-  const stats = geofenceStats();
+  const sourceZones = mode === "live" ? liveZones : mockZones;
+  const stats = useMemo(() => {
+    const total = sourceZones.length;
+    const active = sourceZones.filter((zone) => zone.status === "active").length;
+    const inactive = sourceZones.filter((zone) => zone.status === "inactive").length;
+    const triggeredToday = sourceZones.filter((zone) => zone.triggered24h > 0).length;
+    const pct = (count: number) => (total ? ((count / total) * 100).toFixed(1) : "0");
+    return { total, active, inactive, triggeredToday, activePct: pct(active), inactivePct: pct(inactive) };
+  }, [sourceZones]);
+
+  useEffect(() => {
+    if (!pending) return;
+    const run = runId;
+    if (pending === "mock") {
+      const timer = window.setTimeout(() => finish(run), 400);
+      return () => window.clearTimeout(timer);
+    }
+    let ignore = false;
+    fetchGeofences()
+      .then((zones) => {
+        if (ignore) return;
+        setLiveZones(zones);
+        finish(run);
+      })
+      .catch(() => {
+        if (ignore) return;
+        fail(run);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [fail, finish, pending, runId]);
 
   const mapZones = useMemo(() => {
     const q = headerQuery.trim().toLowerCase();
-    return GEOFENCES.filter((zone) => {
+    return sourceZones.filter((zone) => {
       if (headerGroup !== "all" && !zone.groups.includes(headerGroup)) return false;
       if (!q) return true;
       return `${zone.name} ${zone.description} ${zone.groups.join(" ")}`.toLowerCase().includes(q);
     });
-  }, [headerGroup, headerQuery]);
+  }, [headerGroup, headerQuery, sourceZones]);
 
   const rows = useMemo(() => {
     const q = listQuery.trim().toLowerCase();
-    return GEOFENCES.filter((zone) => {
+    return sourceZones.filter((zone) => {
       if (listType !== "all" && zone.type !== listType) return false;
       if (listStatus !== "all" && zone.status !== listStatus) return false;
       if (listGroup !== "all" && !zone.groups.includes(listGroup)) return false;
       if (!q) return true;
       return `${zone.name} ${zone.description}`.toLowerCase().includes(q);
     });
-  }, [listGroup, listQuery, listStatus, listType]);
+  }, [listGroup, listQuery, listStatus, listType, sourceZones]);
 
   const pageSize = 5;
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -94,6 +140,64 @@ export default function GroupsGeofencePage() {
   function openCreate() {
     setCreateOpen(true);
     setStep(0);
+    setSaveError("");
+  }
+
+  async function saveGeofence() {
+    const draft: GeofenceDraft = {
+      name: draftName.trim(),
+      description: draftDesc.trim(),
+      status: draftActive ? "active" : "inactive",
+      groups: draftGroups,
+      polygon: draftPoints.slice(0, 3),
+    };
+    setSaving(true);
+    setSaveError("");
+    try {
+      if (mode === "live") {
+        await createGeofence(draft);
+        setLiveZones(await fetchGeofences());
+        notifyGeofencesChanged();
+      } else {
+        const closed = [...draft.polygon, draft.polygon[0]] as [number, number][];
+        setMockZones((current) => [
+          {
+            id: `local-${Date.now()}`,
+            name: draft.name,
+            type: "silent",
+            status: draft.status,
+            groups: draft.groups,
+            areaKm2: polygonAreaKm2(draft.polygon),
+            triggered24h: 0,
+            lastTriggered: null,
+            description: draft.description,
+            shape: "polygon",
+            color: draft.status === "active" ? "#f59e0b" : "#94a3b8",
+            polygon: closed,
+          },
+          ...current,
+        ]);
+      }
+      setDraftName("");
+      setDraftDesc("");
+      setDraftPoints([]);
+      setStep(0);
+      setCreateOpen(false);
+    } catch {
+      setSaveError(mode === "live" ? "Could not save to live data." : "Could not add the geofence.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeZone(id: string) {
+    if (mode === "live") {
+      await deleteGeofence(id);
+      setLiveZones(await fetchGeofences());
+      notifyGeofencesChanged();
+      return;
+    }
+    setMockZones((current) => current.filter((zone) => zone.id !== id));
   }
 
   function selectRow(zone: GeofenceZone) {
@@ -141,7 +245,6 @@ export default function GroupsGeofencePage() {
             <small>Total Geofences</small>
             <div className="gfn-stat-value">
               <strong>{stats.total}</strong>
-              <em className="up">↑ 2 new</em>
             </div>
           </div>
         </article>
@@ -177,7 +280,6 @@ export default function GroupsGeofencePage() {
             <small>Triggered Today</small>
             <div className="gfn-stat-value">
               <strong>{stats.triggeredToday}</strong>
-              <em className="down">↑ 2 new</em>
             </div>
           </div>
         </article>
@@ -185,7 +287,17 @@ export default function GroupsGeofencePage() {
 
       <section className="gfn-main">
         <div className="gfn-map-wrap panel">
-          <GeofenceMap zones={mapZones} selectedId={selectedId} onSelect={setSelectedId} />
+          <GeofenceMap
+            zones={mapZones}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            drawing={createOpen && activeStep === 1}
+            draftPoints={draftPoints}
+            draftColor={TYPE_META[draftType].color}
+            onDraftPoint={(point) =>
+              setDraftPoints((current) => (current.length >= 3 ? current : [...current, point]))
+            }
+          />
         </div>
 
         {createOpen ? (
@@ -201,7 +313,7 @@ export default function GroupsGeofencePage() {
                 <button
                   key={label}
                   type="button"
-                  className={step === index ? "on" : ""}
+                  className={activeStep === index ? "on" : ""}
                   onClick={() => setStep(index)}
                 >
                   {label}
@@ -210,7 +322,7 @@ export default function GroupsGeofencePage() {
             </nav>
 
             <div className="gfn-form">
-              {step === 0 ? (
+              {activeStep === 0 ? (
                 <>
                   <label>
                     <span>
@@ -235,7 +347,7 @@ export default function GroupsGeofencePage() {
                       Type <b>*</b>
                     </legend>
                     <div className="gfn-type-grid">
-                      {GEOFENCE_TYPES.map((type) => (
+                      {(["silent"] as const).map((type) => (
                         <label key={type} className={`gfn-type-card ${type} ${draftType === type ? "on" : ""}`}>
                           <input
                             type="radio"
@@ -313,35 +425,55 @@ export default function GroupsGeofencePage() {
                   </label>
                 </>
               ) : (
-                <div className="gfn-step-placeholder">
-                  <Icon name="layers" size={18} />
-                  <strong>{CREATE_STEPS[step]}</strong>
-                  <p>
-                    Configure {CREATE_STEPS[step].toLowerCase()} for{" "}
-                    {draftName.trim() || "the new geofence"}.
-                  </p>
+                <div className="gfn-draw-panel">
+                  <p>Press Draw on the map so it stays still, then click three corners. The lines close into a triangle.</p>
+                  <ol>
+                    {draftPoints.map((point, index) => (
+                      <li key={`${point[0]}-${point[1]}`}>
+                        Corner {index + 1}: {point[0].toFixed(3)}, {point[1].toFixed(3)}
+                      </li>
+                    ))}
+                    {draftPoints.length < 3 ? (
+                      <li className="pending">Waiting for corner {draftPoints.length + 1}</li>
+                    ) : null}
+                  </ol>
+                  <button
+                    type="button"
+                    className="gfn-draw-clear"
+                    disabled={draftPoints.length === 0}
+                    onClick={() => setDraftPoints([])}
+                  >
+                    Clear triangle
+                  </button>
                 </div>
               )}
             </div>
 
             <footer>
+              {saveError ? <p className="gfn-save-error">{saveError}</p> : null}
               <button type="button" className="gfn-ghost" onClick={() => setCreateOpen(false)}>
                 Cancel
               </button>
               <button
                 type="button"
                 className="gfn-primary"
-                onClick={() => setStep((prev) => Math.min(CREATE_STEPS.length - 1, prev + 1))}
-                disabled={step === 0 && !draftName.trim()}
+                onClick={() => {
+                  if (activeStep < CREATE_STEPS.length - 1) setStep((prev) => prev + 1);
+                  else void saveGeofence();
+                }}
+                disabled={
+                  saving ||
+                  (activeStep === 0 && !draftName.trim()) ||
+                  (activeStep === 1 && draftPoints.length < 3)
+                }
               >
-                {step >= CREATE_STEPS.length - 1 ? "Create" : "Next →"}
+                {activeStep >= CREATE_STEPS.length - 1 ? (saving ? "Saving..." : "Create") : "Next →"}
               </button>
             </footer>
           </aside>
         ) : null}
-      </section>
 
-      <section className="panel gfn-table-panel">
+        <section className="panel gfn-table-panel">
         <header>
           <h2>Geofence List</h2>
           <div className="gfn-table-tools">
@@ -436,10 +568,7 @@ export default function GroupsGeofencePage() {
                     <button type="button" aria-label="Edit" onClick={openCreate}>
                       <Icon name="pencil" size={12} />
                     </button>
-                    <button type="button" aria-label="Duplicate">
-                      <Icon name="copy" size={12} />
-                    </button>
-                    <button type="button" aria-label="Delete" className="danger">
+                    <button type="button" aria-label="Delete" className="danger" onClick={() => void removeZone(zone.id)}>
                       <Icon name="trash" size={12} />
                     </button>
                   </td>
@@ -448,7 +577,7 @@ export default function GroupsGeofencePage() {
               {!rows.length ? (
                 <tr>
                   <td colSpan={9} className="gfn-empty">
-                    No geofences match the current filters.
+                    {sourceZones.length === 0 ? "No geofences yet." : "No geofences match the current filters."}
                   </td>
                 </tr>
               ) : null}
@@ -473,6 +602,7 @@ export default function GroupsGeofencePage() {
             </button>
           </div>
         </div>
+      </section>
       </section>
     </div>
   );

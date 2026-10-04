@@ -12,6 +12,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import Icon from "@/components/ui/icon";
 import { registerMapIcons } from "@/components/map/icons";
 import { buildBaseStyle, type MapMode } from "@/components/map/styles";
+import { bindGeofenceOverlay } from "@/components/map/geofence-overlay";
 import {
   AREA_GREEN,
   AREA_RESTRICTED,
@@ -186,6 +187,7 @@ export default function WeaponMap({ filter, selectedId, onSelect }: Props) {
       attributionControl: false,
     });
     mapRef.current = map;
+    const unbindGeofences = bindGeofenceOverlay(map);
 
     map.on("load", () => {
       hydrateLayers(map);
@@ -199,6 +201,7 @@ export default function WeaponMap({ filter, selectedId, onSelect }: Props) {
     if (containerRef.current.parentElement) ro.observe(containerRef.current.parentElement);
 
     return () => {
+      unbindGeofences();
       ro.disconnect();
       for (const marker of markersRef.current) marker.remove();
       markersRef.current = [];
