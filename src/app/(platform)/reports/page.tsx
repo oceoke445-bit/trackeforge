@@ -1,5 +1,5 @@
-import PlaceholderPage from "@/components/PlaceholderPage";
+import ReportsView from "./components/reports-page";
 
 export default function ReportsPage() {
-  return <PlaceholderPage title="Reports" />;
+  return <ReportsView />;
 }

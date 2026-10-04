@@ -3,7 +3,8 @@ import type { IconName } from "@/components/ui/icon";
 export type NavItem = {
   label: string;
   icon: IconName;
-  href: string;
+  href?: string;
+  disabled?: boolean;
 };
 
 export type NavGroup = {
@@ -22,18 +23,26 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Operations",
+    items: [
+      { label: "Operations", icon: "compass", href: "/operations" },
+      { label: "Geofences", icon: "shield", href: "/groups/geofence" },
+    ],
+  },
+  {
+    label: "Hunting & Forensics",
+    items: [
+      { label: "Search / Explorer", icon: "search", href: "/search" },
+      { label: "Alerts", icon: "bell", href: "/alerts" },
+      { label: "History", icon: "clock", href: "/groups/history" },
+      { label: "Reports", icon: "chart", href: "/reports" },
+    ],
+  },
+  {
     label: "Communication",
     items: [
       { label: "LoRa Mesh", icon: "signal", href: "/lora-mesh" },
       { label: "Gateways", icon: "server", href: "/gateways" },
-    ],
-  },
-  {
-    label: "Monitoring",
-    items: [
-      { label: "Alerts", icon: "bell", href: "/alerts" },
-      { label: "History", icon: "clock", href: "/groups/history" },
-      { label: "Geofences", icon: "shield", href: "/groups/geofence" },
     ],
   },
   {

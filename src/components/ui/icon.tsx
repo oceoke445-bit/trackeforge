@@ -51,7 +51,10 @@ export type IconName =
   | "thermo"
   | "copy"
   | "pause"
-  | "warn";
+  | "warn"
+  | "play"
+  | "eye"
+  | "close";
 
 const paths: Record<IconName, ReactNode> = {
   grid: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
@@ -105,6 +108,9 @@ const paths: Record<IconName, ReactNode> = {
   copy: <><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></>,
   pause: <><circle cx="12" cy="12" r="9"/><path d="M10 8v8M14 8v8"/></>,
   warn: <><path d="m12 3 9 16H3Z"/><path d="M12 10v4M12 17h.01"/></>,
+  play: <path d="M8 5v14l12-7Z" fill="currentColor" stroke="none" />,
+  eye: <><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></>,
+  close: <path d="M6 6l12 12M18 6 6 18" />,
 };
 
 export default function Icon({ name, size = 18 }: { name: IconName; size?: number }) {

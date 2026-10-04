@@ -25,7 +25,15 @@ export default function Sidebar({
           <div key={group.label ?? "main"} className="nav-group">
             {group.label && <p className="nav-group-label">{group.label}</p>}
             {group.items.map((item) => {
-              const active = pathname === item.href;
+              const active = Boolean(item.href) && pathname === item.href;
+              if (item.disabled || !item.href) {
+                return (
+                  <span key={item.label} className="nav-disabled" aria-disabled="true">
+                    <Icon name={item.icon} size={15} />
+                    <span>{item.label}</span>
+                  </span>
+                );
+              }
               return (
                 <Link key={item.href} href={item.href} className={active ? "active" : ""}>
                   <Icon name={item.icon} size={15} />
