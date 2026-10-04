@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "@/components/ui/icon";
 import { navGroups } from "@/components/data/fleet";
+import { canRead } from "@/lib/access-api";
+import { useAccessSession } from "@/lib/access-session";
 
 export default function Sidebar({
   onMouseEnter,
@@ -13,6 +15,7 @@ export default function Sidebar({
   onMouseLeave?: () => void;
 }) {
   const pathname = usePathname();
+  const { permissions } = useAccessSession();
 
   return (
     <aside className="sidebar" id="app-sidebar" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
@@ -26,7 +29,9 @@ export default function Sidebar({
             {group.label && <p className="nav-group-label">{group.label}</p>}
             {group.items.map((item) => {
               const active = Boolean(item.href) && pathname === item.href;
-              if (item.disabled || !item.href) {
+              const domain = item.domain;
+              const locked = permissions !== null && domain != null && !canRead(permissions, domain);
+              if (item.disabled || !item.href || locked) {
                 return (
                   <span key={item.label} className="nav-disabled" aria-disabled="true">
                     <Icon name={item.icon} size={15} />

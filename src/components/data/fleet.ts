@@ -4,6 +4,7 @@ export type NavItem = {
   label: string;
   icon: IconName;
   href?: string;
+  domain?: string;
   disabled?: boolean;
 };
 
@@ -16,41 +17,41 @@ export const navGroups: NavGroup[] = [
   {
     label: "Dashboard",
     items: [
-      { label: "Overview", icon: "grid", href: "/overview" },
-      { label: "Groups", icon: "layers", href: "/groups" },
-      { label: "Personal", icon: "user", href: "/personal" },
-      { label: "Weapons", icon: "crosshair", href: "/weapons" },
+      { label: "Overview", icon: "grid", href: "/overview", domain: "overview" },
+      { label: "Groups", icon: "layers", href: "/groups", domain: "groups" },
+      { label: "Personal", icon: "user", href: "/personal", domain: "personal" },
+      { label: "Weapons", icon: "crosshair", href: "/weapons", domain: "weapons" },
     ],
   },
   {
     label: "Operations",
     items: [
-      { label: "Operations", icon: "compass", href: "/operations" },
-      { label: "Geofences", icon: "shield", href: "/groups/geofence" },
+      { label: "Operations", icon: "compass", href: "/operations", domain: "operations" },
+      { label: "Geofences", icon: "shield", href: "/groups/geofence", domain: "geofences" },
     ],
   },
   {
     label: "Hunting & Forensics",
     items: [
-      { label: "Search / Explorer", icon: "search", href: "/search" },
-      { label: "Alerts", icon: "bell", href: "/alerts" },
-      { label: "History", icon: "clock", href: "/groups/history" },
-      { label: "Reports", icon: "chart", href: "/reports" },
+      { label: "Search / Explorer", icon: "search", href: "/search", domain: "explorer" },
+      { label: "Alerts", icon: "bell", href: "/alerts", domain: "alerts" },
+      { label: "History", icon: "clock", href: "/groups/history", domain: "history" },
+      { label: "Reports", icon: "chart", href: "/reports", domain: "reports" },
     ],
   },
   {
     label: "Communication",
     items: [
-      { label: "LoRa Mesh", icon: "signal", disabled: true },
-      { label: "Gateways", icon: "server", disabled: true },
+      { label: "LoRa Mesh", icon: "signal", domain: "lora_mesh", disabled: true },
+      { label: "Gateways", icon: "server", domain: "gateways", disabled: true },
     ],
   },
   {
     label: "Administration",
     items: [
-      { label: "User Access", icon: "users", href: "/user-access" },
-      { label: "Activity Log", icon: "file", href: "/activity-log" },
-      { label: "Settings", icon: "settings", disabled: true },
+      { label: "User Access", icon: "users", href: "/user-access", domain: "user_access" },
+      { label: "Activity Log", icon: "file", href: "/activity-log", domain: "activity_log" },
+      { label: "Settings", icon: "settings", domain: "settings", disabled: true },
     ],
   },
 ];

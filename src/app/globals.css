@@ -221,7 +221,7 @@ button { cursor: pointer; }
   display: block;
   height: 18px;
   width: auto;
-  max-width: 100px;
+  max-width: 108px;
   object-fit: contain;
   object-position: left center;
 }
@@ -1697,14 +1697,22 @@ td:first-child { color: var(--text); }
   align-items: center;
   overflow: hidden;
 }
+.identity-table.role-table th:first-child,
+.identity-table.role-table td:first-child {
+  padding-inline: 0;
+  justify-content: center;
+}
 
-.identity-stats.binding-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.identity-stats.role-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.identity-stats.binding-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .identity-stat.green > span { background: rgba(16, 185, 129, 0.16); color: #34d399; }
+.identity-stat.teal > span { background: rgba(20, 184, 166, 0.16); color: #2dd4bf; }
+.identity-stat.slate > span { background: rgba(148, 163, 184, 0.16); color: #94a3b8; }
 .identity-stat.rose > span { background: rgba(244, 63, 94, 0.16); color: #fb7185; }
 .identity-table.binding-table tr {
   grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 1.2fr) minmax(0, 1.15fr) 96px;
 }
-.identity-table.binding-table tbody tr { flex: 1 1 0; min-height: 52px; }
+.identity-table.binding-table tbody tr { flex: 0 0 52px; }
 .binding-period { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .binding-period svg { flex: none; color: var(--text-faint); }
 .id-chip.warn { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
@@ -2288,31 +2296,31 @@ button.matrix-hit:hover { background: color-mix(in srgb, var(--text) 6%, transpa
   font-size: 10px;
 }
 
-.identity-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.identity-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .identity-stat {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 46px;
-  padding: 8px;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-soft);
 }
 .identity-stat > span {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: 10px;
   flex: none;
 }
 .identity-stat.blue > span { background: rgba(59, 130, 246, 0.16); color: #60a5fa; }
 .identity-stat.violet > span { background: rgba(139, 92, 246, 0.16); color: #c4b5fd; }
 .identity-stat.amber > span { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
 .identity-stat.red > span { background: rgba(239, 68, 68, 0.16); color: #f87171; }
-.identity-stat strong { display: block; color: var(--text); font-size: 16px; line-height: 1; font-weight: 600; }
-.identity-stat small { color: var(--text-muted); font-size: 11px; }
+.identity-stat strong { display: block; color: var(--text); font-size: 18px; line-height: 1; font-weight: 600; }
+.identity-stat small { display: block; margin-top: 3px; color: var(--text-muted); font-size: 12px; line-height: 1.2; }
 .identity-stat em { margin-left: auto; font-style: normal; font-size: 11px; font-weight: 600; }
 .identity-stat em.up { color: #34d399; }
 .identity-stat em.down { color: #f87171; }
@@ -2397,28 +2405,34 @@ button.matrix-hit:hover { background: color-mix(in srgb, var(--text) 6%, transpa
   background: var(--surface-muted);
   border-bottom: 1px solid var(--border);
 }
-.identity-table tbody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.identity-table tbody { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
 .identity-table tr {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, 0.8fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 1fr) minmax(180px, 1.3fr) 110px 120px 120px;
   align-items: center;
   width: 100%;
 }
-.identity-table tbody tr { flex: 1 1 0; min-height: 0; }
+.identity-table tbody tr {
+  flex: 0 0 52px;
+  border-bottom: 1px solid var(--border);
+}
 .identity-table th {
   height: auto;
-  font-size: 10px;
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  letter-spacing: 0.02em;
   text-transform: none;
   background: transparent;
   border-bottom: 0;
+  color: var(--text-faint);
+  font-weight: 600;
 }
 .identity-table th,
 .identity-table td {
   display: flex;
   align-items: center;
   min-width: 0;
-  height: auto;
+  height: 100%;
+  padding: 0 14px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2590,6 +2604,7 @@ button.matrix-hit:hover { background: color-mix(in srgb, var(--text) 6%, transpa
   .identity-layout,
   .identity-layout.solo { grid-template-columns: 1fr; }
   .identity-stats,
+  .identity-stats.role-stats,
   .identity-stats.binding-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .identity-cards { grid-template-columns: 1fr; }
 }

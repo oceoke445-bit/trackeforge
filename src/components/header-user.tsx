@@ -4,13 +4,23 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/icon";
-import { endSession } from "@/lib/session";
+import { endSession, readSessionUser } from "@/lib/session";
+
+function labelRole(role: string) {
+  return role.split(/[_\s]+/).map((part) => part.slice(0, 1).toUpperCase() + part.slice(1)).join(" ");
+}
 
 export default function HeaderUser() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [profile, setProfile] = useState<{ name: string; role: string | null } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const signedIn = readSessionUser();
+    if (signedIn) setProfile({ name: signedIn.name, role: signedIn.role });
+  }, []);
 
   useEffect(() => {
     const onPointer = (event: MouseEvent) => {
@@ -35,12 +45,12 @@ export default function HeaderUser() {
       <div className={`user-menu ${open ? "open" : ""}`} ref={menuRef}>
         <button className="header-user" type="button" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((value) => !value)}>
           <span className="user-badge">
-            A
+            {(profile?.name || "A").slice(0, 1)}
             <i />
           </span>
           <span className="user-copy">
-            <strong>Administrator1</strong>
-            <small>Security Administrator</small>
+            <strong>{profile?.name || "Signed in"}</strong>
+            <small>{profile?.role ? labelRole(profile.role) : "No role"}</small>
           </span>
           <span className="user-caret">
             <Icon name="chevron" size={14} />

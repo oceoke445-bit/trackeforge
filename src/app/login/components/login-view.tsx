@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { loginAccount } from "@/lib/access-api";
 import { startSession } from "@/lib/session";
 // import ThemeToggle from "@/components/theme-toggle";
 import "@/app/login/login.css";
@@ -32,6 +33,14 @@ function ArrowIcon() {
   );
 }
 
+function loginMessage(detail: string) {
+  if (detail === "invalid account or password") return "Email, username, or password is incorrect.";
+  if (detail === "account is not active") return "This identity is inactive until a role is assigned.";
+  if (detail === "account is not verified") return "This identity is not verified.";
+  if (detail === "account is not human") return "Service accounts cannot sign in.";
+  return detail || "Sign in failed.";
+}
+
 function accountProblem(value: string) {
   const text = value.trim();
   if (!text) return "Email or username is required.";
@@ -46,25 +55,33 @@ export default function LoginView() {
   const [password, setPassword] = useState("");
   const [accountError, setAccountError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [formError, setFormError] = useState("");
   const [pending, setPending] = useState(false);
 
-  const finish = () => {
-    setPending(true);
-    window.setTimeout(() => {
-      startSession();
-      router.push("/overview");
-    }, 700);
-  };
-
-  const onSubmit = (event: FormEvent) => {
+  const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (pending) return;
     const nextAccountError = accountProblem(account);
     const nextPasswordError = password.trim() ? "" : "Password is required.";
     setAccountError(nextAccountError);
     setPasswordError(nextPasswordError);
+    setFormError("");
     if (nextAccountError || nextPasswordError) return;
-    finish();
+    setPending(true);
+    try {
+      const session = await loginAccount(account.trim(), password);
+      startSession({
+        id: session.id,
+        name: session.name,
+        username: session.username,
+        role: session.access.role,
+        permissions: session.access.permissions,
+      });
+      router.push("/overview");
+    } catch (error) {
+      setPending(false);
+      setFormError(loginMessage(error instanceof Error ? error.message : ""));
+    }
   };
 
   return (
@@ -177,6 +194,7 @@ export default function LoginView() {
           </span>
           {passwordError && <p id="password-error" className="auth-error">{passwordError}</p>}
         </div>
+        {formError && <p className="auth-error">{formError}</p>}
 
         <button
           className={pending ? "auth-submit is-pending" : "auth-submit"}
