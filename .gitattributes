@@ -5,8 +5,10 @@
 # Images & Graphics
 # ---------------------------------------------------------------------------
 *.png                filter=lfs diff=lfs merge=lfs -text
+public/images/*.png  -filter -diff -merge -text
 public/images/login-hero-dark.png -filter -diff -merge
 *.jpg                filter=lfs diff=lfs merge=lfs -text
+public/images/*.jpg  -filter -diff -merge -text
 *.jpeg               filter=lfs diff=lfs merge=lfs -text
 *.gif                filter=lfs diff=lfs merge=lfs -text
 *.bmp                filter=lfs diff=lfs merge=lfs -text
