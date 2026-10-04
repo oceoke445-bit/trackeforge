@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./login/login.css";
 
 html:not(.theme-ready) body,
 html:not(.theme-ready) .sidebar,

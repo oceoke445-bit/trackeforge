@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { loginAccount } from "@/lib/access-api";
 import { startSession } from "@/lib/session";
 // import ThemeToggle from "@/components/theme-toggle";
-import "@/app/login/login.css";
 
 function UserIcon() {
   return (
