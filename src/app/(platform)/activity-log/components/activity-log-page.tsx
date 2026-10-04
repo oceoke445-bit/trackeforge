@@ -3,751 +3,541 @@
 import { useMemo, useState } from "react";
 import Icon, { type IconName } from "@/components/ui/icon";
 
-type ResultTone = "success" | "warning";
-type ActorKind = "user" | "system";
-type DetailTab = "overview" | "changes" | "raw";
-
-type AuditEvent = {
+type Activity = {
   id: string;
-  time: string;
   date: string;
-  timestamp: string;
+  time: string;
+  event: string;
+  detail: string;
+  category: string;
+  categoryTone: string;
   actor: string;
   actorRole: string;
   actorTone: string;
-  actorKind: ActorKind;
-  action: string;
-  actionDetail: string;
-  actionIcon: IconName;
-  actionTone: string;
   target: string;
-  targetDetail: string;
-  source: string;
-  sourceDetail: string;
-  sourceIcon: IconName;
-  result: ResultTone;
-  resultNote: string;
-  sessionId?: string;
-  before?: string;
-  after?: string;
-  category: "admin" | "security" | "system";
+  targetKind: string;
+  action: string;
+  actionTone: string;
+  actionLabel: string;
+  outcome: "Success" | "Denied";
+  description: string;
+  extra?: [string, string][];
 };
 
-const events: AuditEvent[] = [
+const activities: Activity[] = [
   {
-    id: "EVT-A7F3C2",
-    time: "16:42:18",
-    date: "03 Oct 2026",
-    timestamp: "03 Oct 2026, 16:42:18 WIB",
-    actor: "Administrator1",
-    actorRole: "Security Administrator",
-    actorTone: "violet",
-    actorKind: "user",
-    action: "Updated user role",
-    actionDetail: "Changed role assignment",
-    actionIcon: "pencil",
-    actionTone: "violet",
-    target: "Analyst",
-    targetDetail: "User Account",
-    source: "Web Console",
-    sourceDetail: "103.24.56.112",
-    sourceIcon: "monitor",
-    result: "success",
-    resultNote: "Role updated successfully",
-    sessionId: "sess_9f2a1c8e4b",
-    before: "Role: Analyst",
-    after: "Role: Security Administrator",
-    category: "admin",
+    id: "act-1",
+    date: "10/05/2026",
+    time: "14:32:18",
+    event: "User Created",
+    detail: "Created new human identity",
+    category: "User Access",
+    categoryTone: "blue",
+    actor: "Superadmin",
+    actorRole: "Superadmin",
+    actorTone: "blue",
+    target: "Andi Pratama",
+    targetKind: "User",
+    action: "Create",
+    actionTone: "green",
+    actionLabel: "Create User",
+    outcome: "Success",
+    description: "Created new human identity with username and email.",
+    extra: [
+      ["User ID", "12"],
+      ["Username", "andi.pratama"],
+      ["Email", "andi@trackforge.id"],
+      ["Department", "Command Operations"],
+      ["Title", "Operations Commander"],
+    ],
   },
   {
-    id: "EVT-B2E91A",
-    time: "16:38:05",
-    date: "03 Oct 2026",
-    timestamp: "03 Oct 2026, 16:38:05 WIB",
-    actor: "System",
-    actorRole: "Automated Process",
-    actorTone: "slate",
-    actorKind: "system",
-    action: "Gateway heartbeat timeout",
-    actionDetail: "No response for 90s",
-    actionIcon: "signal",
-    actionTone: "red",
-    target: "GW-002",
-    targetDetail: "Jakarta Hub",
-    source: "Device API",
-    sourceDetail: "internal",
-    sourceIcon: "server",
-    result: "warning",
-    resultNote: "Gateway marked degraded after missed heartbeats",
-    category: "system",
-  },
-  {
-    id: "EVT-C4D813",
-    time: "16:35:22",
-    date: "03 Oct 2026",
-    timestamp: "03 Oct 2026, 16:35:22 WIB",
-    actor: "Administrator1",
-    actorRole: "Security Administrator",
-    actorTone: "violet",
-    actorKind: "user",
-    action: "Created new user",
-    actionDetail: "Provisioned account",
-    actionIcon: "user",
+    id: "act-2",
+    date: "10/05/2026",
+    time: "14:28:41",
+    event: "Role Assigned",
+    detail: "Assigned role to user",
+    category: "User Access",
+    categoryTone: "blue",
+    actor: "Superadmin",
+    actorRole: "Superadmin",
+    actorTone: "blue",
+    target: "Andi Pratama",
+    targetKind: "User",
+    action: "Assign",
     actionTone: "blue",
-    target: "Nabila Putri",
-    targetDetail: "Fleet Operator",
-    source: "Web Console",
-    sourceDetail: "103.24.56.112",
-    sourceIcon: "monitor",
-    result: "success",
-    resultNote: "User account created and invited",
-    sessionId: "sess_9f2a1c8e4b",
-    before: "Status: —",
-    after: "Status: Active · Role: Fleet Operator",
-    category: "admin",
+    actionLabel: "Assign Role",
+    outcome: "Success",
+    description: "Assigned role to user.",
   },
   {
-    id: "EVT-D9F205",
-    time: "16:31:47",
-    date: "03 Oct 2026",
-    timestamp: "03 Oct 2026, 16:31:47 WIB",
-    actor: "SOC Operator",
-    actorRole: "Security Operations",
+    id: "act-3",
+    date: "10/05/2026",
+    time: "13:54:29",
+    event: "User Login",
+    detail: "User logged in to platform",
+    category: "Authentication",
+    categoryTone: "violet",
+    actor: "Andi Pratama",
+    actorRole: "Operations Commander",
     actorTone: "cyan",
-    actorKind: "user",
-    action: "Acknowledged alert",
-    actionDetail: "Alert cleared from queue",
-    actionIcon: "bell",
-    actionTone: "amber",
-    target: "ALT-8841",
-    targetDetail: "Speed violation",
-    source: "Mobile App",
-    sourceDetail: "114.79.22.41",
-    sourceIcon: "monitor",
-    result: "success",
-    resultNote: "Alert acknowledged by SOC Operator",
-    sessionId: "sess_m4b881q2",
-    category: "security",
-  },
-  {
-    id: "EVT-E1A774",
-    time: "16:28:11",
-    date: "03 Oct 2026",
-    timestamp: "03 Oct 2026, 16:28:11 WIB",
-    actor: "System",
-    actorRole: "Automated Process",
-    actorTone: "slate",
-    actorKind: "system",
-    action: "Firmware update completed",
-    actionDetail: "OTA flash successful",
-    actionIcon: "cpu",
+    target: "Platform",
+    targetKind: "Session",
+    action: "Login",
     actionTone: "green",
-    target: "DEV-4412",
-    targetDetail: "Truck 042 tracker",
-    source: "Device API",
-    sourceDetail: "internal",
-    sourceIcon: "server",
-    result: "success",
-    resultNote: "Firmware v3.4.1 installed",
-    before: "Firmware: v3.3.8",
-    after: "Firmware: v3.4.1",
-    category: "system",
+    actionLabel: "Login",
+    outcome: "Success",
+    description: "User logged in to platform.",
   },
   {
-    id: "EVT-F6B338",
-    time: "16:24:55",
-    date: "03 Oct 2026",
-    timestamp: "03 Oct 2026, 16:24:55 WIB",
-    actor: "Nadia Putri",
-    actorRole: "Fleet IT",
-    actorTone: "green",
-    actorKind: "user",
-    action: "Exported fleet report",
-    actionDetail: "CSV download",
-    actionIcon: "file",
-    actionTone: "blue",
-    target: "Monthly Ops",
-    targetDetail: "Report package",
-    source: "Web Console",
-    sourceDetail: "103.24.58.90",
-    sourceIcon: "monitor",
-    result: "success",
-    resultNote: "Report exported successfully",
-    sessionId: "sess_n7d12k0a",
-    category: "admin",
+    id: "act-4",
+    date: "10/05/2026",
+    time: "12:41:17",
+    event: "View History",
+    detail: "Viewed soldier movement history",
+    category: "History",
+    categoryTone: "amber",
+    actor: "Andi Pratama",
+    actorRole: "Operations Commander",
+    actorTone: "cyan",
+    target: "S-104",
+    targetKind: "Soldier",
+    action: "View",
+    actionTone: "violet",
+    actionLabel: "View History",
+    outcome: "Success",
+    description: "Viewed soldier movement history.",
   },
   {
-    id: "EVT-G8C491",
-    time: "16:19:03",
-    date: "03 Oct 2026",
-    timestamp: "03 Oct 2026, 16:19:03 WIB",
-    actor: "System",
-    actorRole: "Automated Process",
-    actorTone: "slate",
-    actorKind: "system",
-    action: "Geofence breach detected",
-    actionDetail: "Exit from restricted zone",
-    actionIcon: "shield",
-    actionTone: "red",
-    target: "Zone North",
-    targetDetail: "B 1942 UZY",
-    source: "Event Bus",
-    sourceDetail: "internal",
-    sourceIcon: "layers",
-    result: "warning",
-    resultNote: "Vehicle left Zone North without clearance",
-    category: "security",
-  },
-  {
-    id: "EVT-H2D556",
-    time: "16:15:40",
-    date: "03 Oct 2026",
-    timestamp: "03 Oct 2026, 16:15:40 WIB",
-    actor: "Administrator1",
-    actorRole: "Security Administrator",
-    actorTone: "violet",
-    actorKind: "user",
-    action: "Revoked API key",
-    actionDetail: "Key disabled immediately",
-    actionIcon: "lock",
-    actionTone: "amber",
-    target: "key_live_9x…",
-    targetDetail: "Integration key",
-    source: "Web Console",
-    sourceDetail: "103.24.56.112",
-    sourceIcon: "monitor",
-    result: "success",
-    resultNote: "API key revoked and sessions invalidated",
-    sessionId: "sess_9f2a1c8e4b",
-    before: "Key status: Active",
-    after: "Key status: Revoked",
-    category: "security",
-  },
-  {
-    id: "EVT-I4E667",
-    time: "16:12:18",
-    date: "03 Oct 2026",
-    timestamp: "03 Oct 2026, 16:12:18 WIB",
-    actor: "Guest User",
-    actorRole: "Read-only Guest",
+    id: "act-5",
+    date: "10/05/2026",
+    time: "11:23:05",
+    event: "Update Geofence",
+    detail: "Updated geofence area",
+    category: "Operations",
+    categoryTone: "green",
+    actor: "Budi Santoso",
+    actorRole: "Operations Officer",
     actorTone: "amber",
-    actorKind: "user",
-    action: "Failed login attempt",
-    actionDetail: "Invalid credentials",
-    actionIcon: "lock",
-    actionTone: "red",
-    target: "auth.traxon",
-    targetDetail: "Login endpoint",
-    source: "Auth Service",
-    sourceDetail: "182.1.44.209",
-    sourceIcon: "server",
-    result: "warning",
-    resultNote: "Authentication failed after invalid password",
-    category: "security",
+    target: "Alpha Zone",
+    targetKind: "Geofence",
+    action: "Update",
+    actionTone: "amber",
+    actionLabel: "Update Geofence",
+    outcome: "Success",
+    description: "Updated geofence area.",
   },
   {
-    id: "EVT-J7F778",
-    time: "16:08:52",
-    date: "03 Oct 2026",
-    timestamp: "03 Oct 2026, 16:08:52 WIB",
-    actor: "System",
-    actorRole: "Automated Process",
-    actorTone: "slate",
-    actorKind: "system",
-    action: "Backup completed",
-    actionDetail: "Nightly snapshot",
-    actionIcon: "box",
+    id: "act-6",
+    date: "10/05/2026",
+    time: "10:17:33",
+    event: "Alert Acknowledged",
+    detail: "Acknowledged alert",
+    category: "Alerts",
+    categoryTone: "red",
+    actor: "Rina Putri",
+    actorRole: "Field Operator",
+    actorTone: "violet",
+    target: "S-104",
+    targetKind: "Soldier",
+    action: "Acknowledge",
     actionTone: "green",
-    target: "DB Primary",
-    targetDetail: "PostgreSQL cluster",
-    source: "Scheduler",
-    sourceDetail: "cron://nightly",
-    sourceIcon: "clock",
-    result: "success",
-    resultNote: "Backup stored for 5-year retention",
-    category: "system",
+    actionLabel: "Acknowledge Alert",
+    outcome: "Success",
+    description: "Acknowledged alert.",
+  },
+  {
+    id: "act-7",
+    date: "10/05/2026",
+    time: "09:42:11",
+    event: "Weapon Updated",
+    detail: "Updated weapon information",
+    category: "Weapons",
+    categoryTone: "amber",
+    actor: "Tono Wijaya",
+    actorRole: "Device & Fleet Admin",
+    actorTone: "blue",
+    target: "Rifle-07",
+    targetKind: "Weapon",
+    action: "Update",
+    actionTone: "amber",
+    actionLabel: "Update Weapon",
+    outcome: "Success",
+    description: "Updated weapon information.",
+  },
+  {
+    id: "act-8",
+    date: "10/05/2026",
+    time: "09:18:28",
+    event: "Export Report",
+    detail: "Exported operations report",
+    category: "Reports",
+    categoryTone: "cyan",
+    actor: "Budi Santoso",
+    actorRole: "Operations Officer",
+    actorTone: "amber",
+    target: "Operations Q4",
+    targetKind: "Report",
+    action: "Export",
+    actionTone: "blue",
+    actionLabel: "Export Report",
+    outcome: "Success",
+    description: "Exported operations report.",
+  },
+  {
+    id: "act-9",
+    date: "10/05/2026",
+    time: "08:53:17",
+    event: "Settings Updated",
+    detail: "Updated system settings",
+    category: "Settings",
+    categoryTone: "slate",
+    actor: "Superadmin",
+    actorRole: "Superadmin",
+    actorTone: "blue",
+    target: "Settings",
+    targetKind: "Settings",
+    action: "Update",
+    actionTone: "amber",
+    actionLabel: "Update Settings",
+    outcome: "Success",
+    description: "Updated system settings.",
+  },
+  {
+    id: "act-10",
+    date: "10/05/2026",
+    time: "08:14:06",
+    event: "User Access Denied",
+    detail: "Attempted to access restricted page",
+    category: "User Access",
+    categoryTone: "blue",
+    actor: "Dimas Arif",
+    actorRole: "Viewer",
+    actorTone: "green",
+    target: "Settings",
+    targetKind: "Page",
+    action: "Access",
+    actionTone: "red",
+    actionLabel: "Access Page",
+    outcome: "Denied",
+    description: "Attempted to access restricted page.",
   },
 ];
 
-const stats = [
-  { label: "Today's Events", value: "342", trend: "+12% from yesterday", icon: "clock" as IconName, tone: "blue", spark: "2,8 8,5 14,7 20,3 26,6 32,2" },
-  { label: "Admin Actions", value: "48", trend: "+8% from yesterday", icon: "users" as IconName, tone: "violet", spark: "2,7 8,6 14,4 20,5 26,3 32,2" },
-  { label: "Security Events", value: "27", trend: "+35% from yesterday", icon: "shield" as IconName, tone: "red", spark: "2,8 8,7 14,6 20,4 26,5 32,1" },
-  { label: "System Events", value: "267", trend: "+6% from yesterday", icon: "settings" as IconName, tone: "slate", spark: "2,6 8,5 14,6 20,4 26,5 32,3" },
+const categoryCounts: [string, number][] = [
+  ["Authentication", 124],
+  ["Personnel", 312],
+  ["Groups", 218],
+  ["Weapons", 86],
+  ["Operations", 420],
+  ["Alerts", 201],
+  ["Tickets", 54],
+  ["History", 298],
+  ["Communication", 77],
+  ["User Access", 421],
+  ["Settings", 31],
 ];
 
-const pageSize = 10;
+const ranges = ["All Time", "Last 1 Hour", "Last 24 Hours", "Last 7 Days", "Last 30 Days", "Custom"];
 
-function initials(name: string) {
-  if (name === "System") return "SY";
-  return name
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+function letter(name: string) {
+  return name.slice(0, 1).toUpperCase();
 }
 
 export default function ActivityLogPage() {
   const [query, setQuery] = useState("");
-  const [actorFilter, setActorFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [resourceFilter, setResourceFilter] = useState("all");
-  const [resultFilter, setResultFilter] = useState("all");
-  const [page, setPage] = useState(1);
-  const [selectedId, setSelectedId] = useState<string | null>(events[0].id);
-  const [detailTab, setDetailTab] = useState<DetailTab>("overview");
+  const [actorQuery, setActorQuery] = useState("");
+  const [range, setRange] = useState("All Time");
+  const [enabled, setEnabled] = useState<string[]>(categoryCounts.map(([name]) => name));
+  const [action, setAction] = useState("All");
+  const [outcome, setOutcome] = useState("All");
+  const [actor, setActor] = useState("All");
+  const [sort, setSort] = useState("recent");
+  const [selectedId, setSelectedId] = useState<string | null>(activities[0].id);
+  const [checked, setChecked] = useState<string[]>([]);
 
-  const filtered = useMemo(() => {
+  const actors = [...new Set(activities.map((item) => item.actor))];
+  const actions = [...new Set(activities.map((item) => item.action))];
+
+  const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return events.filter((event) => {
-      if (actorFilter !== "all" && event.actorKind !== actorFilter) return false;
-      if (typeFilter !== "all" && event.category !== typeFilter) return false;
-      if (resourceFilter !== "all" && !event.target.toLowerCase().includes(resourceFilter)) return false;
-      if (resultFilter !== "all" && event.result !== resultFilter) return false;
+    const actorQ = actorQuery.trim().toLowerCase();
+    const rows = activities.filter((item) => {
+      if (item.category !== "Reports" && !enabled.includes(item.category)) return false;
+      if (action !== "All" && item.action !== action) return false;
+      if (outcome !== "All" && item.outcome !== outcome) return false;
+      if (actor !== "All" && item.actor !== actor) return false;
+      if (actorQ && !`${item.actor} ${item.actorRole}`.toLowerCase().includes(actorQ)) return false;
       if (!q) return true;
-      return [event.id, event.actor, event.action, event.target, event.source, event.actionDetail]
-        .join(" ")
-        .toLowerCase()
-        .includes(q);
+      return [item.event, item.detail, item.actor, item.target, item.category, item.action].join(" ").toLowerCase().includes(q);
     });
-  }, [actorFilter, query, resourceFilter, resultFilter, typeFilter]);
+    return sort === "recent" ? rows : [...rows].reverse();
+  }, [action, actor, actorQuery, enabled, outcome, query, sort]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, pageCount);
-  const pageItems = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const selected = filtered.find((event) => event.id === selectedId) ?? pageItems[0] ?? null;
-  const rangeStart = filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const rangeEnd = Math.min(safePage * pageSize, filtered.length);
+  const selected = selectedId ? visible.find((item) => item.id === selectedId) ?? null : null;
+  const allChecked = visible.length > 0 && visible.every((item) => checked.includes(item.id));
+
+  function resetFilters() {
+    setRange("All Time");
+    setEnabled(categoryCounts.map(([name]) => name));
+    setAction("All");
+    setOutcome("All");
+    setActor("All");
+    setActorQuery("");
+    setQuery("");
+    setSort("recent");
+    setSelectedId(activities[0].id);
+  }
 
   return (
-    <div className={`alog-screen${selected ? " has-detail" : ""}`}>
-      <div className="alog-head page-title">
-        <span className="page-title-icon">
-          <Icon name="file" size={15} />
-        </span>
+    <div className="alog-screen">
+      <header className="alog-top">
         <div>
           <h1>Activity Log</h1>
-          <p>Audit trail of administrative and system activity across the platform.</p>
+          <p>Monitor and review all user and system activities across the TrackForge platform.</p>
         </div>
-      </div>
+        <div className="alog-top-actions">
+          <button type="button" className="alog-export">
+            <Icon name="download" size={14} /> Export
+          </button>
+          <button type="button" className="alog-range">
+            <Icon name="calendar" size={14} />
+            Oct 1, 2026 - Oct 10, 2026
+            <Icon name="chevron" size={13} />
+          </button>
+        </div>
+      </header>
 
       <div className="alog-stats">
-        {stats.map((stat) => (
-          <article key={stat.label} className={`alog-stat ${stat.tone}`}>
-            <div>
-              <small>{stat.label}</small>
-              <strong>{stat.value}</strong>
-              <em>
-                <Icon name="arrow" size={11} />
-                {stat.trend}
-              </em>
-            </div>
-            <div className="alog-stat-side">
-              <span>
-                <Icon name={stat.icon} size={15} />
-              </span>
-              <svg viewBox="0 0 34 10" className="alog-spark" aria-hidden="true">
-                <polyline points={stat.spark} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          </article>
-        ))}
+        <Stat icon="chart" tone="blue" label="Total Activities" value="1,842" delta="+12%" spark="up" />
+        <Stat icon="user" tone="green" label="User Actions" value="1,517" delta="+8%" spark="up" />
+        <Stat icon="settings" tone="violet" label="System Actions" value="284" delta="+5%" spark="up" />
+        <Stat icon="warn" tone="red" label="Failed Actions" value="41" delta="-32%" spark="down" />
       </div>
 
-      <div className={`alog-layout${selected ? "" : " solo"}`}>
+      <div className={`alog-workspace${selected ? "" : " solo"}`}>
+        <aside className="alog-filters">
+          <header>
+            <strong><Icon name="filter" size={14} /> Filters</strong>
+            <button type="button" onClick={resetFilters}>Reset</button>
+          </header>
+          <section>
+            <small>Time Range</small>
+            <div className="alog-range-list">
+              {ranges.map((label) => (
+                <button key={label} type="button" className={range === label ? "on" : ""} onClick={() => setRange(label)}>{label}</button>
+              ))}
+            </div>
+          </section>
+          <section>
+            <small>Category</small>
+            <div className="alog-checks">
+              {categoryCounts.map(([name, count]) => (
+                <label key={name}>
+                  <input
+                    type="checkbox"
+                    checked={enabled.includes(name)}
+                    onChange={() => setEnabled((current) => current.includes(name) ? current.filter((item) => item !== name) : [...current, name])}
+                  />
+                  <span>{name}</span>
+                  <b>{count}</b>
+                </label>
+              ))}
+            </div>
+          </section>
+          <section>
+            <small>Action</small>
+            <label className="alog-filter">
+              <select aria-label="Action" value={action} onChange={(event) => setAction(event.target.value)}>
+                <option value="All">All Actions</option>
+                {actions.map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <Icon name="chevron" size={13} />
+            </label>
+          </section>
+          <section>
+            <small>Outcome</small>
+            <label className="alog-filter">
+              <select aria-label="Outcome" value={outcome} onChange={(event) => setOutcome(event.target.value)}>
+                <option>All</option>
+                <option>Success</option>
+                <option>Denied</option>
+              </select>
+              <Icon name="chevron" size={13} />
+            </label>
+          </section>
+          <section>
+            <small>Actor</small>
+            <label className="alog-filter">
+              <select aria-label="Actor" value={actor} onChange={(event) => setActor(event.target.value)}>
+                <option value="All">All Users</option>
+                {actors.map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <Icon name="chevron" size={13} />
+            </label>
+            <label className="alog-search alog-actor-search">
+              <Icon name="search" size={14} />
+              <input value={actorQuery} onChange={(event) => setActorQuery(event.target.value)} placeholder="Search actor..." />
+            </label>
+          </section>
+        </aside>
+
         <section className="alog-main">
           <div className="alog-toolbar">
             <label className="alog-search">
               <Icon name="search" size={15} />
-              <input
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(1);
-                }}
-                placeholder="Search events, actor, target, or event ID..."
-              />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search action, target, or details..." />
             </label>
-
-            <button type="button" className="alog-filter">
-              <Icon name="calendar" size={14} />
-              03 Oct 2026, 00:00 – 23:59
-              <Icon name="chevron" size={13} />
-            </button>
-
             <label className="alog-filter">
-              <select
-                value={actorFilter}
-                onChange={(e) => {
-                  setActorFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Actors</option>
-                <option value="user">Users</option>
-                <option value="system">System</option>
+              <select aria-label="Sort" value={sort} onChange={(event) => setSort(event.target.value)}>
+                <option value="recent">Sort: Most Recent</option>
+                <option value="oldest">Sort: Oldest</option>
               </select>
               <Icon name="chevron" size={13} />
             </label>
-
-            <label className="alog-filter">
-              <select
-                value={typeFilter}
-                onChange={(e) => {
-                  setTypeFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Event Types</option>
-                <option value="admin">Admin</option>
-                <option value="security">Security</option>
-                <option value="system">System</option>
-              </select>
-              <Icon name="chevron" size={13} />
-            </label>
-
-            <label className="alog-filter">
-              <select
-                value={resourceFilter}
-                onChange={(e) => {
-                  setResourceFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Resources</option>
-                <option value="analyst">Users</option>
-                <option value="gw">Gateways</option>
-                <option value="dev">Devices</option>
-                <option value="alt">Alerts</option>
-              </select>
-              <Icon name="chevron" size={13} />
-            </label>
-
-            <label className="alog-filter">
-              <select
-                value={resultFilter}
-                onChange={(e) => {
-                  setResultFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Results</option>
-                <option value="success">Success</option>
-                <option value="warning">Warning</option>
-              </select>
-              <Icon name="chevron" size={13} />
-            </label>
-
-            <button type="button" className="alog-export">
-              <Icon name="download" size={15} />
-              Export
-            </button>
+            <div className="alog-view-toggle" role="group" aria-label="Layout">
+              <button type="button" className="on" aria-label="Table"><Icon name="grid" size={14} /></button>
+              <button type="button" aria-label="Rows"><Icon name="menu" size={14} /></button>
+            </div>
+            <button type="button" className="alog-columns"><Icon name="layers" size={14} /> Columns</button>
           </div>
-
           <div className="alog-table-wrap">
-            <table className="alog-table">
+            <table className="alog-table alog-activity-table">
               <thead>
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      aria-label="Select page"
+                      checked={allChecked}
+                      onChange={() => setChecked(allChecked ? [] : visible.map((item) => item.id))}
+                    />
+                  </th>
                   <th>Time</th>
+                  <th>Event</th>
+                  <th>Category</th>
                   <th>Actor</th>
-                  <th>Action</th>
                   <th>Target</th>
-                  <th>Source</th>
-                  <th>Result</th>
-                  <th>Event ID</th>
-                  <th />
+                  <th>Action</th>
+                  <th>Outcome</th>
                 </tr>
               </thead>
               <tbody>
-                {pageItems.length === 0 ? (
-                  <tr className="alog-empty-row">
-                    <td colSpan={8}>No events match your filters.</td>
+                {visible.length === 0 ? (
+                  <tr className="alog-empty-row"><td colSpan={8}>No activities match these filters.</td></tr>
+                ) : visible.map((item) => (
+                  <tr key={item.id} className={selected?.id === item.id ? "selected" : ""} onClick={() => setSelectedId(item.id)}>
+                    <td onClick={(event) => event.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${item.event}`}
+                        checked={checked.includes(item.id)}
+                        onChange={() => setChecked((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])}
+                      />
+                    </td>
+                    <td className="alog-time">{item.date}<small>{item.time}</small></td>
+                    <td>
+                      <strong>{item.event}</strong>
+                      <small>{item.detail}</small>
+                    </td>
+                    <td><span className={`alog-pill ${item.categoryTone}`}>{item.category}</span></td>
+                    <td>
+                      <div className="alog-actor">
+                        <span className={`id-avatar ${item.actorTone}`}>{letter(item.actor)}</span>
+                        <div>
+                          <strong>{item.actor}</strong>
+                          <small>{item.actorRole}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <strong>{item.target}</strong>
+                      <small>{item.targetKind}</small>
+                    </td>
+                    <td><span className={`alog-pill ${item.actionTone}`}>{item.action}</span></td>
+                    <td>
+                      <span className={`alog-result ${item.outcome === "Success" ? "success" : "warning"}`}>
+                        <i />
+                        {item.outcome}
+                      </span>
+                    </td>
                   </tr>
-                ) : (
-                  pageItems.map((event) => (
-                    <tr
-                      key={event.id}
-                      className={selected?.id === event.id ? "selected" : ""}
-                      onClick={() => {
-                        setSelectedId(event.id);
-                        setDetailTab("overview");
-                      }}
-                    >
-                      <td>
-                        <strong>{event.time}</strong>
-                        <small>{event.date}</small>
-                      </td>
-                      <td>
-                        <div className="alog-actor">
-                          <span className={`id-avatar ${event.actorTone}`}>{initials(event.actor)}</span>
-                          <div>
-                            <strong>{event.actor}</strong>
-                            <small>{event.actorRole}</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="alog-action">
-                          <span className={`alog-action-icon ${event.actionTone}`}>
-                            <Icon name={event.actionIcon} size={13} />
-                          </span>
-                          <div>
-                            <strong>{event.action}</strong>
-                            <small>{event.actionDetail}</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <strong>{event.target}</strong>
-                        <small>{event.targetDetail}</small>
-                      </td>
-                      <td>
-                        <div className="alog-source">
-                          <Icon name={event.sourceIcon} size={13} />
-                          <div>
-                            <strong>{event.source}</strong>
-                            <small>{event.sourceDetail}</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`alog-result ${event.result}`}>
-                          <i />
-                          {event.result === "success" ? "Success" : "Warning"}
-                        </span>
-                      </td>
-                      <td>
-                        <code>{event.id}</code>
-                      </td>
-                      <td>
-                        <button type="button" className="alog-more" aria-label="More actions" onClick={(e) => e.stopPropagation()}>
-                          <Icon name="more" size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
-
           <div className="alog-footer">
-            <span>
-              Showing {rangeStart}–{rangeEnd} of {filtered.length} events
-            </span>
+            <span>{visible.length === activities.length ? "Showing 1–10 of 1,842 activities" : `Showing ${visible.length === 0 ? "0" : `1–${visible.length}`} activities`}</span>
             <div className="alog-pager">
-              <button type="button" disabled={safePage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} aria-label="Previous page">
-                <Icon name="chevron" size={14} />
-              </button>
-              {Array.from({ length: Math.min(pageCount, 3) }, (_, i) => i + 1).map((n) => (
-                <button key={n} type="button" className={safePage === n ? "on" : ""} onClick={() => setPage(n)}>
-                  {n}
-                </button>
-              ))}
-              {pageCount > 4 && <span>…</span>}
-              {pageCount > 3 && (
-                <button type="button" className={safePage === pageCount ? "on" : ""} onClick={() => setPage(pageCount)}>
-                  {pageCount}
-                </button>
-              )}
-              <button type="button" disabled={safePage >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))} aria-label="Next page">
-                <Icon name="chevron" size={14} />
-              </button>
+              <button type="button" aria-label="Previous page" disabled><Icon name="chevron" size={14} /></button>
+              <button type="button" className="on">1</button>
+              <button type="button">2</button>
+              <button type="button">3</button>
+              <span>...</span>
+              <button type="button">185</button>
+              <button type="button" aria-label="Next page"><Icon name="chevron" size={14} /></button>
             </div>
-            <label className="alog-page-size">
-              <select value={pageSize} disabled>
-                <option value={10}>10 / page</option>
-              </select>
-              <Icon name="chevron" size={12} />
-            </label>
           </div>
         </section>
 
         {selected && (
-          <aside className="alog-inspector" aria-label="Event details">
+          <aside className="alog-inspector" aria-label="Activity detail">
             <header>
-              <strong>Event Details</strong>
-              <button type="button" aria-label="Close" onClick={() => setSelectedId(null)}>
-                ×
-              </button>
+              <strong>Activity Detail</strong>
+              <button type="button" aria-label="Close" onClick={() => setSelectedId(null)}>×</button>
             </header>
-
             <div className="alog-inspector-summary">
-              <span className={`alog-action-icon ${selected.actionTone}`}>
-                <Icon name={selected.actionIcon} size={15} />
-              </span>
+              <span className={`alog-action-icon ${selected.categoryTone}`}><Icon name="file" size={15} /></span>
               <div>
-                <strong>{selected.action}</strong>
-                <small>{selected.actionDetail}</small>
+                <strong>{selected.event}</strong>
+                <small>{selected.detail}</small>
               </div>
             </div>
-
-            <div className="alog-tabs" role="tablist" aria-label="Event detail sections">
-              {(
-                [
-                  ["overview", "Overview"],
-                  ["changes", "Changes"],
-                  ["raw", "Raw Data"],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={detailTab === id}
-                  className={detailTab === id ? "on" : ""}
-                  onClick={() => setDetailTab(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
             <div className="alog-inspector-body">
-              {detailTab === "overview" && (
-                <>
-                  <section className="alog-block">
-                    <div className="alog-meta-grid">
-                      <div>
-                        <small>Event ID</small>
-                        <code>{selected.id}</code>
-                      </div>
-                      <div>
-                        <small>Timestamp</small>
-                        <strong>{selected.timestamp}</strong>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="alog-block">
-                    <small>Actor</small>
-                    <div className="alog-actor">
-                      <span className={`id-avatar ${selected.actorTone}`}>{initials(selected.actor)}</span>
-                      <div>
-                        <strong>{selected.actor}</strong>
-                        <small>{selected.actorRole}</small>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="alog-block">
-                    <small>Action</small>
-                    <div className="alog-action">
-                      <span className={`alog-action-icon ${selected.actionTone}`}>
-                        <Icon name={selected.actionIcon} size={13} />
-                      </span>
-                      <div>
-                        <strong>{selected.action}</strong>
-                        <small>{selected.actionDetail}</small>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="alog-block">
-                    <small>Target</small>
-                    <div className="alog-target-card">
-                      <div>
-                        <strong>{selected.target}</strong>
-                        <small>{selected.targetDetail}</small>
-                      </div>
-                      <button type="button">View User</button>
-                    </div>
-                  </section>
-
-                  <section className="alog-block">
-                    <small>Source</small>
-                    <div className="alog-source-card">
-                      <div className="alog-source">
-                        <Icon name={selected.sourceIcon} size={14} />
-                        <div>
-                          <strong>{selected.source}</strong>
-                          <small>IP {selected.sourceDetail}</small>
-                        </div>
-                      </div>
-                      {selected.sessionId && (
-                        <p>
-                          Session ID <code>{selected.sessionId}</code>
-                        </p>
-                      )}
-                    </div>
-                  </section>
-
-                  <section className="alog-block">
-                    <small>Result</small>
-                    <div className={`alog-result-card ${selected.result}`}>
-                      <span className={`alog-result ${selected.result}`}>
-                        <i />
-                        {selected.result === "success" ? "Success" : "Warning"}
-                      </span>
-                      <p>{selected.resultNote}</p>
-                    </div>
-                  </section>
-
-                  {(selected.before || selected.after) && (
-                    <section className="alog-block">
-                      <small>Changes</small>
-                      <div className="alog-diff">
-                        <div className="before">
-                          <span>Before</span>
-                          <strong>{selected.before || "—"}</strong>
-                        </div>
-                        <Icon name="arrow" size={14} />
-                        <div className="after">
-                          <span>After</span>
-                          <strong>{selected.after || "—"}</strong>
-                        </div>
-                      </div>
-                    </section>
-                  )}
-                </>
-              )}
-
-              {detailTab === "changes" && (
-                <section className="alog-block">
-                  {selected.before || selected.after ? (
-                    <div className="alog-diff stacked">
-                      <div className="before">
-                        <span>Before</span>
-                        <strong>{selected.before || "—"}</strong>
-                      </div>
-                      <div className="after">
-                        <span>After</span>
-                        <strong>{selected.after || "—"}</strong>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="alog-empty-note">No field-level changes recorded for this event.</p>
-                  )}
-                </section>
-              )}
-
-              {detailTab === "raw" && (
-                <section className="alog-block">
-                  <pre className="alog-raw">{JSON.stringify(selected, null, 2)}</pre>
+              <dl className="alog-detail-list">
+                <div><dt><Icon name="clock" size={13} /> Timestamp</dt><dd>{selected.date} {selected.time}</dd></div>
+                <div><dt><Icon name="user" size={13} /> Actor</dt><dd><span className={`id-avatar ${selected.actorTone}`}>{letter(selected.actor)}</span>{selected.actor}<small>{selected.actorRole}</small></dd></div>
+                <div><dt><Icon name="layers" size={13} /> Category</dt><dd><span className={`alog-pill ${selected.categoryTone}`}>{selected.category}</span></dd></div>
+                <div><dt><Icon name="bolt" size={13} /> Action</dt><dd>{selected.actionLabel}</dd></div>
+                <div><dt><Icon name="crosshair" size={13} /> Target</dt><dd>{selected.target}<small>{selected.targetKind}</small></dd></div>
+                <div><dt><Icon name="check" size={13} /> Outcome</dt><dd><span className={`alog-result ${selected.outcome === "Success" ? "success" : "warning"}`}><i />{selected.outcome}</span></dd></div>
+              </dl>
+              <section>
+                <small>Description</small>
+                <p>{selected.description}</p>
+              </section>
+              {selected.extra && (
+                <section>
+                  <small>Additional Information</small>
+                  <dl className="alog-extra">
+                    {selected.extra.map(([label, value]) => (
+                      <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                    ))}
+                  </dl>
                 </section>
               )}
             </div>
-
-            <footer className="alog-audit-foot">
-              <div>
-                <Icon name="lock" size={14} />
-                <div>
-                  <strong>Immutable Record</strong>
-                  <small>This audit entry cannot be modified.</small>
-                </div>
-              </div>
-              <div>
-                <Icon name="box" size={14} />
-                <div>
-                  <strong>Retention</strong>
-                  <small>Stored for 5 years</small>
-                </div>
-              </div>
-            </footer>
           </aside>
         )}
       </div>
     </div>
+  );
+}
+
+function Stat({ icon, tone, label, value, delta, spark }: { icon: IconName; tone: string; label: string; value: string; delta: string; spark: "up" | "down" }) {
+  return (
+    <article className={`alog-stat ${tone}`}>
+      <span><Icon name={icon} size={16} /></span>
+      <div>
+        <strong>{value}</strong>
+        <small>{label}</small>
+      </div>
+      <svg viewBox="0 0 64 22" className="alog-spark" aria-hidden="true">
+        {(spark === "down" ? [16, 14, 15, 11, 12, 8, 9, 5] : [4, 8, 6, 12, 9, 14, 11, 16]).map((height, index) => (
+          <rect key={index} x={index * 8} y={22 - height} width="5" height={height} rx="1" />
+        ))}
+      </svg>
+      <em className={spark}>{delta}<span>vs last 7 days</span></em>
+    </article>
   );
 }

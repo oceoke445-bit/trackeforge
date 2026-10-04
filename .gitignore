@@ -9,4 +9,5 @@ build/
 *.tsbuildinfo
 *.log
 logs/
+.tmp-*
 public/vendor/maplibre/
