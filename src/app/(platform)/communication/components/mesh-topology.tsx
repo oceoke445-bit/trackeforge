@@ -6,7 +6,6 @@ import {
   Map as MapLibreMap,
   Marker,
   setWorkerUrl,
-  type Map,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import Icon from "@/components/ui/icon";
@@ -68,7 +67,7 @@ function markerElement(id: string, kind: "soldier" | "gateway", rssi: number, ho
 
 export default function MeshTopology({ showHop }: { showHop: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<Map | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
