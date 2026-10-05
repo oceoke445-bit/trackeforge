@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/icon";
+import { fetchMyProfile, fetchProfileImage, rememberProfile } from "@/lib/profile-api";
 import { endSession, readSessionUser } from "@/lib/session";
 
 function labelRole(role: string) {
@@ -15,11 +16,47 @@ export default function HeaderUser() {
   const [open, setOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [profile, setProfile] = useState<{ name: string; role: string | null } | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const signedIn = readSessionUser();
-    if (signedIn) setProfile({ name: signedIn.name, role: signedIn.role });
+    let cancelled = false;
+    let request = 0;
+    let photo: string | null = null;
+
+    const showSession = () => {
+      const signedIn = readSessionUser();
+      setProfile(signedIn ? { name: signedIn.name, role: signedIn.role } : null);
+    };
+
+    const load = async () => {
+      const id = ++request;
+      showSession();
+      try {
+        const user = await fetchMyProfile();
+        if (cancelled || id !== request) return;
+        setProfile({ name: user.fullName, role: user.role?.name ?? null });
+        rememberProfile(user);
+        const nextPhoto = user.profileImageUrl ? await fetchProfileImage() : null;
+        if (cancelled || id !== request) {
+          if (nextPhoto) URL.revokeObjectURL(nextPhoto);
+          return;
+        }
+        if (photo) URL.revokeObjectURL(photo);
+        photo = nextPhoto;
+        setPhotoUrl(nextPhoto);
+      } catch {
+        if (!cancelled && id === request) showSession();
+      }
+    };
+
+    load();
+    window.addEventListener("traxon-session", load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("traxon-session", load);
+      if (photo) URL.revokeObjectURL(photo);
+    };
   }, []);
 
   useEffect(() => {
@@ -45,7 +82,7 @@ export default function HeaderUser() {
       <div className={`user-menu ${open ? "open" : ""}`} ref={menuRef}>
         <button className="header-user" type="button" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((value) => !value)}>
           <span className="user-badge">
-            {(profile?.name || "A").slice(0, 1)}
+            {photoUrl ? <img src={photoUrl} alt="" /> : (profile?.name || "A").slice(0, 1)}
             <i />
           </span>
           <span className="user-copy">

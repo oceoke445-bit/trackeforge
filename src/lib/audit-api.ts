@@ -121,6 +121,10 @@ export function fetchAuditLogs(query: AuditQuery) {
   return send<AuditPage>(`/api/audit-logs${queryString(query)}`);
 }
 
+export function fetchMyAuditLogs(page = 1, limit = 20) {
+  return send<AuditPage>(`/api/audit-logs/me?page=${page}&limit=${limit}`);
+}
+
 export function fetchAuditDetail(eventId: string) {
   return send<AuditDetail>(`/api/audit-logs/${encodeURIComponent(eventId)}`);
 }

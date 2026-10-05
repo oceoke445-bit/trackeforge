@@ -7,16 +7,24 @@ async function proxy(request: Request, path: string[]) {
   const headers = new Headers();
   const type = request.headers.get("content-type");
   if (type) headers.set("content-type", type);
+  const authorization = request.headers.get("authorization");
+  if (authorization) headers.set("authorization", authorization);
+  let body: ArrayBuffer | undefined;
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    const bytes = await request.arrayBuffer();
+    if (bytes.byteLength > 0) body = bytes;
+  }
   try {
     const response = await fetch(target, {
       method: request.method,
       headers,
-      body: request.method === "GET" || request.method === "HEAD" ? undefined : await request.text(),
+      body,
       cache: "no-store",
     });
     const out = new Headers();
     const responseType = response.headers.get("content-type");
     if (responseType) out.set("content-type", responseType);
+    if (response.status === 204 || response.status === 205) return new Response(null, { status: response.status, headers: out });
     return new Response(await response.arrayBuffer(), { status: response.status, headers: out });
   } catch {
     return Response.json({ detail: "User access is unavailable" }, { status: 502 });

@@ -31,6 +31,7 @@ export function readSessionUser(): SignedInUser | null {
 export function startSession(user: SignedInUser) {
   sessionStorage.setItem(SESSION_KEY, "1");
   sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  window.dispatchEvent(new Event("traxon-session"));
 }
 
 export function endSession() {
