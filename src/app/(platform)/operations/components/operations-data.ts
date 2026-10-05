@@ -34,8 +34,17 @@ function groupRow(name: string, count: number, commander: string, status: string
 }
 
 export type OpGeofenceRow = {
+  id?: number;
   name: string;
   type: "POLYGON" | "CIRCLE";
+};
+
+export type OpTicketRow = {
+  id: number;
+  code: string;
+  status: string;
+  priority: string;
+  alertType: string;
 };
 
 export type Operation = {
@@ -66,7 +75,12 @@ export type Operation = {
   critical: number;
   groupRows: OpGroupRow[];
   geofenceRows: OpGeofenceRow[];
-  alertRows: { title: string; detail: string; level: string }[];
+  alertRows: { id?: number; title: string; detail: string; level: string; status?: string }[];
+  ticketRows?: OpTicketRow[];
+  startAtIso?: string;
+  endAtIso?: string;
+  groupIds?: number[];
+  geofenceIds?: number[];
   gateway: string;
   gatewayPlace: string;
   uplink: string;
@@ -113,7 +127,7 @@ function diamond(lng: number, lat: number): [number, number][] {
   return ring;
 }
 
-function scene(lng: number, lat: number, names: string[]) {
+export function scene(lng: number, lat: number, names: string[]) {
   const ring = diamond(lng, lat);
   const pins = names.map((name, index) => ({
     name,

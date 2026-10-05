@@ -1,11 +1,34 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import DateTimeField from "@/components/ui/date-time-field";
 import Icon from "@/components/ui/icon";
 import { GEOFENCES, TYPE_META, type GeofenceZone } from "@/app/(platform)/groups/components/geofence-data";
 import { useGeofenceFeed } from "@/lib/geofence-feed";
+import { useOperationFeed } from "@/lib/operation-feed";
 import { fetchGeofences, GEOFENCE_CHANGED } from "@/lib/geofences";
+import {
+  createLiveOperation,
+  deleteLiveOperation,
+  fetchEnrichedOperation,
+  fetchLiveOperations,
+  fetchOperationFilterOptions,
+  fetchOperationGroupChoices,
+  fetchOperationSummary,
+  formatStamp,
+  mapDetailToOperation,
+  mapListItemToOperation,
+  OperationApiError,
+  patchLiveOperation,
+  statusActionsFor,
+  toDatetimeLocal,
+  toIsoInput,
+  transitionOperation,
+  type OperationGroupChoice,
+  type OperationSummary,
+} from "@/lib/operations-api";
+import { createTicketFromAlert } from "@/lib/tickets-api";
 import OperationsMap from "./operations-map";
 import {
   CATALOG_GROUPS,
@@ -23,6 +46,30 @@ type DetailTab = "overview" | "map" | "alerts" | "tickets";
 const EMPTY_LAYERS: OpLayers = { groups: true, personnel: true };
 const TIMES = ["All Time", "Last 7 days", "Last 30 days", "This month"] as const;
 const PAGE_SIZE = 5;
+const EMPTY_SUMMARY: OperationSummary = {
+  total: 0,
+  planning: 0,
+  active: 0,
+  on_hold: 0,
+  completed: 0,
+  cancelled: 0,
+};
+
+function timeWindow(time: (typeof TIMES)[number]): { startFrom: string | null; startTo: string | null } {
+  const now = new Date();
+  const end = now.toISOString().replace(/\.\d{3}Z$/, "Z");
+  if (time === "All Time") return { startFrom: null, startTo: null };
+  if (time === "Last 7 days") {
+    const start = new Date(now.getTime() - 7 * 86_400_000);
+    return { startFrom: start.toISOString().replace(/\.\d{3}Z$/, "Z"), startTo: end };
+  }
+  if (time === "Last 30 days") {
+    const start = new Date(now.getTime() - 30 * 86_400_000);
+    return { startFrom: start.toISOString().replace(/\.\d{3}Z$/, "Z"), startTo: end };
+  }
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  return { startFrom: start.toISOString().replace(/\.\d{3}Z$/, "Z"), startTo: end };
+}
 
 function statusClass(status: OpStatus) {
   return status.toLowerCase().replace(/\s+/g, "-");
@@ -34,14 +81,22 @@ function statusLabel(status: OpStatus) {
 
 export default function OperationsPage() {
   const { mode: geofenceMode } = useGeofenceFeed();
-  const [rows, setRows] = useState(OPERATIONS);
+  const { mode, pending, runId, finish, fail } = useOperationFeed();
+  const skipRefresh = useRef(false);
+  const [mockRows, setMockRows] = useState(OPERATIONS);
+  const [liveRows, setLiveRows] = useState<Operation[]>([]);
+  const [liveTotal, setLiveTotal] = useState(0);
+  const [liveSummary, setLiveSummary] = useState<OperationSummary>(EMPTY_SUMMARY);
+  const [liveError, setLiveError] = useState("");
+  const [liveGroupChoices, setLiveGroupChoices] = useState<OperationGroupChoice[]>([]);
+  const [filterGroups, setFilterGroups] = useState<{ id: number; name: string }[]>([]);
   const [view, setView] = useState<View>("list");
   const [selectedId, setSelectedId] = useState(OPERATIONS[0]?.id ?? "");
   const [tab, setTab] = useState<DetailTab>("overview");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"All Status" | OpStatus>("All Status");
   const [time, setTime] = useState<(typeof TIMES)[number]>("All Time");
-  const [groupFilter, setGroupFilter] = useState("All Groups");
+  const [groupFilter, setGroupFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [layers, setLayers] = useState<OpLayers>(EMPTY_LAYERS);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -60,6 +115,18 @@ export default function OperationsPage() {
   const [draftStatus, setDraftStatus] = useState<OpStatus>("Planning");
   const [mounted, setMounted] = useState(false);
 
+  const rows = mode === "live" ? liveRows : mockRows;
+  const groupCatalog = mode === "live"
+    ? liveGroupChoices.map((item) => ({
+      id: String(item.id),
+      name: item.name,
+      personnel: item.personnel_count,
+      commander: item.commander_name?.trim() || "—",
+    }))
+    : CATALOG_GROUPS;
+  const filtersRef = useRef({ query, status, time, groupFilter, page });
+  filtersRef.current = { query, status, time, groupFilter, page };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -75,6 +142,110 @@ export default function OperationsPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [createOpen, editOpen]);
+
+  const loadLive = useCallback(async () => {
+    const filters = filtersRef.current;
+    const window = timeWindow(filters.time);
+    const groupId = filters.groupFilter !== "all" && Number.isFinite(Number(filters.groupFilter))
+      ? Number(filters.groupFilter)
+      : null;
+    const [pageData, summary, filterOptions, choices] = await Promise.all([
+      fetchLiveOperations({
+        q: filters.query,
+        status: filters.status,
+        groupId,
+        startFrom: window.startFrom,
+        startTo: window.startTo,
+        page: filters.page,
+        limit: PAGE_SIZE,
+      }),
+      fetchOperationSummary(),
+      fetchOperationFilterOptions().catch(() => ({ statuses: [], groups: [] })),
+      fetchOperationGroupChoices().catch(() => [] as OperationGroupChoice[]),
+    ]);
+    const items = pageData.items.map(mapListItemToOperation);
+    setLiveRows(items);
+    setLiveTotal(pageData.total);
+    setLiveSummary(summary);
+    setFilterGroups(filterOptions.groups);
+    setLiveGroupChoices(choices);
+    setLiveError("");
+    if (items.length) {
+      setSelectedId((current) => (items.some((item) => item.id === current) ? current : items[0].id));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!pending) return;
+    const run = runId;
+    if (pending === "mock") {
+      const timer = window.setTimeout(() => {
+        setLiveError("");
+        setLiveSummary(EMPTY_SUMMARY);
+        setLiveTotal(0);
+        finish(run);
+      }, 400);
+      return () => window.clearTimeout(timer);
+    }
+    let ignore = false;
+    loadLive()
+      .then(() => {
+        if (ignore) return;
+        skipRefresh.current = true;
+        finish(run);
+      })
+      .catch((error: unknown) => {
+        if (ignore) return;
+        if (error instanceof OperationApiError && error.status === 401) setLiveError("Sign in required for live operations.");
+        else if (error instanceof OperationApiError && error.status === 403) setLiveError("Missing permission operations.read.");
+        fail(run);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [fail, finish, loadLive, pending, runId]);
+
+  useEffect(() => {
+    if (mode !== "live" || pending) return;
+    if (skipRefresh.current) {
+      skipRefresh.current = false;
+      return;
+    }
+    let ignore = false;
+    loadLive()
+      .then(() => {
+        if (!ignore) setLiveError("");
+      })
+      .catch((error: unknown) => {
+        if (ignore) return;
+        if (error instanceof OperationApiError && error.status === 401) setLiveError("Sign in required for live operations.");
+        else if (error instanceof OperationApiError && error.status === 403) setLiveError("Missing permission operations.read.");
+        else setLiveError("Live operations are unavailable.");
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [loadLive, mode, pending, query, status, time, groupFilter, page]);
+
+  useEffect(() => {
+    if (mode !== "live" || pending || view !== "detail" || !selectedId) return;
+    const id = Number(selectedId);
+    if (!Number.isFinite(id)) return;
+    let ignore = false;
+    fetchEnrichedOperation(id)
+      .then((operation) => {
+        if (ignore) return;
+        setLiveRows((current) => {
+          const exists = current.some((item) => item.id === operation.id);
+          if (!exists) return [operation, ...current];
+          return current.map((item) => (item.id === operation.id ? operation : item));
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      ignore = true;
+    };
+  }, [mode, pending, selectedId, view]);
 
   const selected = rows.find((item) => item.id === selectedId) ?? rows[0] ?? null;
   const geofenceCatalog = geofenceMode === "live" ? liveGeofences : GEOFENCES;
@@ -98,29 +269,34 @@ export default function OperationsPage() {
       window.removeEventListener(GEOFENCE_CHANGED, load);
     };
   }, [geofenceMode]);
-  const groupNames = useMemo(() => Array.from(new Set(rows.flatMap((item) => item.groupRows.map((row) => row.name.split("-")[0] || row.name)))), [rows]);
+  const groupNames = useMemo(() => {
+    if (mode === "live") return filterGroups.map((item) => item.name);
+    return Array.from(new Set(rows.flatMap((item) => item.groupRows.map((row) => row.name.split("-")[0] || row.name))));
+  }, [filterGroups, mode, rows]);
 
   const filtered = useMemo(() => {
+    if (mode === "live") return rows;
     return rows.filter((item) => {
       if (status !== "All Status" && item.status !== status) return false;
-      if (groupFilter !== "All Groups" && !item.groupRows.some((row) => row.name.toLowerCase().includes(groupFilter.toLowerCase()))) return false;
+      if (groupFilter !== "all" && !item.groupRows.some((row) => row.name.toLowerCase().includes(groupFilter.toLowerCase()))) return false;
       const q = query.trim().toLowerCase();
       if (q && !`${item.name} ${item.summary} ${item.sector}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [groupFilter, query, rows, status]);
+  }, [groupFilter, mode, query, rows, status]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const listTotal = mode === "live" ? liveTotal : filtered.length;
+  const pageCount = Math.max(1, Math.ceil(listTotal / PAGE_SIZE));
   const current = Math.min(page, pageCount);
-  const visible = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
-  const from = filtered.length === 0 ? 0 : (current - 1) * PAGE_SIZE + 1;
-  const to = Math.min(current * PAGE_SIZE, filtered.length);
-  const totalCount = rows.length;
-  const activeCount = rows.filter((item) => item.status === "Active").length;
-  const onHoldCount = rows.filter((item) => item.status === "On Hold").length;
-  const planningCount = rows.filter((item) => item.status === "Planning").length;
+  const visible = mode === "live" ? rows : filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+  const from = listTotal === 0 ? 0 : (current - 1) * PAGE_SIZE + 1;
+  const to = Math.min(current * PAGE_SIZE, listTotal);
+  const totalCount = mode === "live" ? liveSummary.total : rows.length;
+  const activeCount = mode === "live" ? liveSummary.active : rows.filter((item) => item.status === "Active").length;
+  const onHoldCount = mode === "live" ? liveSummary.on_hold : rows.filter((item) => item.status === "On Hold").length;
+  const planningCount = mode === "live" ? liveSummary.planning : rows.filter((item) => item.status === "Planning").length;
 
-  const availableGroups = CATALOG_GROUPS.filter(
+  const availableGroups = groupCatalog.filter(
     (item) => !selectedGroups.includes(item.id) && item.name.toLowerCase().includes(groupQuery.trim().toLowerCase()),
   );
 
@@ -128,15 +304,17 @@ export default function OperationsPage() {
     setQuery("");
     setStatus("All Status");
     setTime("All Time");
-    setGroupFilter("All Groups");
+    setGroupFilter("all");
     setPage(1);
   }
 
   function openCreate() {
     setDraftName("");
     setDraftSummary("");
-    setDraftStart("");
-    setDraftEnd("");
+    const start = new Date();
+    const end = new Date(start.getTime() + 2 * 86_400_000);
+    setDraftStart(toDatetimeLocal(start.toISOString()));
+    setDraftEnd(toDatetimeLocal(end.toISOString()));
     setGroupQuery("");
     setSelectedGroups([]);
     setCreateOpen(true);
@@ -150,8 +328,8 @@ export default function OperationsPage() {
     if (!selected) return;
     setDraftName(selected.name);
     setDraftSummary(selected.summary);
-    setDraftStart(selected.startAt);
-    setDraftEnd(selected.endAt);
+    setDraftStart(toDatetimeLocal(selected.startAtIso || selected.startAt));
+    setDraftEnd(toDatetimeLocal(selected.endAtIso || selected.endAt));
     setDraftDays(selected.days);
     setDraftStatus(selected.status);
     setActionsOpen(false);
@@ -159,28 +337,72 @@ export default function OperationsPage() {
     setEditOpen(true);
   }
 
+  async function runStatusAction(action: ReturnType<typeof statusActionsFor>[number]["action"]) {
+    if (!selected || mode !== "live") return;
+    const id = Number(selected.id);
+    if (!Number.isFinite(id)) return;
+    setActionsOpen(false);
+    try {
+      await transitionOperation(id, action);
+      const enriched = await fetchEnrichedOperation(id);
+      setLiveRows((current) => current.map((item) => (item.id === enriched.id ? enriched : item)));
+      const summary = await fetchOperationSummary();
+      setLiveSummary(summary);
+      setLiveError("");
+    } catch (error) {
+      setLiveError(error instanceof OperationApiError ? error.message : "Unable to update operation status.");
+    }
+  }
+
   function closeEdit() {
     setEditOpen(false);
   }
 
-  function saveOperationDetails(event: FormEvent) {
+  async function saveOperationDetails(event: FormEvent) {
     event.preventDefault();
     if (!selected) return;
     const summary = draftSummary.trim() || selected.summary;
     const startAt = draftStart.trim() || selected.startAt;
     const endAt = draftEnd.trim() || selected.endAt;
     const name = draftName.trim() || selected.name;
-    setRows((current) =>
+
+    if (mode === "live") {
+      const id = Number(selected.id);
+      if (!Number.isFinite(id)) return;
+      try {
+        await patchLiveOperation(id, {
+          name,
+          description: summary,
+          start_at: startAt,
+          end_at: endAt,
+        });
+        const enriched = await fetchEnrichedOperation(id);
+        setLiveRows((current) => current.map((item) => (item.id === enriched.id ? enriched : item)));
+        setLiveError("");
+        setEditOpen(false);
+      } catch (error) {
+        setLiveError(error instanceof OperationApiError ? error.message : "Unable to update operation.");
+      }
+      return;
+    }
+
+    const startIso = toIsoInput(startAt);
+    const endIso = toIsoInput(endAt);
+    const startLabel = formatStamp(startIso);
+    const endLabel = formatStamp(endIso);
+    setMockRows((current) =>
       current.map((item) =>
         item.id === selected.id
           ? {
               ...item,
               name,
               summary,
-              startAt,
-              endAt,
-              start: startAt.slice(0, 11),
-              end: endAt.slice(0, 11),
+              startAt: startLabel,
+              endAt: endLabel,
+              start: startLabel.slice(0, 11),
+              end: endLabel.slice(0, 11),
+              startAtIso: startIso,
+              endAtIso: endIso,
               days: draftDays.trim() || item.days,
               status: draftStatus,
               updatedAt: "05 Oct 2026 16:00",
@@ -200,8 +422,26 @@ export default function OperationsPage() {
     setView("detail");
   }
 
-  function deleteOperation(id: string) {
-    setRows((current) => {
+  async function deleteOperation(id: string) {
+    if (mode === "live") {
+      const target = liveRows.find((item) => item.id === id);
+      if (target && target.status !== "Planning") {
+        setLiveError("Only PLANNING operations can be deleted.");
+        return;
+      }
+      const numericId = Number(id);
+      if (!Number.isFinite(numericId)) return;
+      try {
+        await deleteLiveOperation(numericId);
+        await loadLive();
+        if (selectedId === id) setSelectedId("");
+        setLiveError("");
+      } catch (error) {
+        setLiveError(error instanceof OperationApiError ? error.message : "Unable to delete operation.");
+      }
+      return;
+    }
+    setMockRows((current) => {
       const next = current.filter((item) => item.id !== id);
       if (selectedId === id) setSelectedId(next[0]?.id ?? "");
       return next;
@@ -209,22 +449,49 @@ export default function OperationsPage() {
     setPage(1);
   }
 
-  function createOperation(event: FormEvent) {
+  async function createOperation(event: FormEvent) {
     event.preventDefault();
     const name = draftName.trim() || "New Operation";
-    const groups = CATALOG_GROUPS.filter((item) => selectedGroups.includes(item.id));
+    const groups = groupCatalog.filter((item) => selectedGroups.includes(item.id));
+
+    if (mode === "live") {
+      try {
+        const detail = await createLiveOperation({
+          name,
+          description: draftSummary.trim() || undefined,
+          start_at: draftStart,
+          end_at: draftEnd,
+          group_ids: groups.map((item) => Number(item.id)).filter((id) => Number.isFinite(id)),
+        });
+        const created = mapDetailToOperation(detail);
+        setCreateOpen(false);
+        setLiveError("");
+        await loadLive();
+        openDetail(created.id);
+      } catch (error) {
+        setLiveError(error instanceof OperationApiError ? error.message : "Unable to create operation.");
+      }
+      return;
+    }
+
     const base = OPERATIONS[0];
     const id = `op-${Date.now()}`;
+    const startIso = toIsoInput(draftStart);
+    const endIso = toIsoInput(draftEnd);
+    const startAt = formatStamp(startIso);
+    const endAt = formatStamp(endIso);
     const created: Operation = {
       ...base,
       id,
       name,
       sector: "Unassigned area",
       summary: draftSummary.trim() || "New tactical operation.",
-      startAt: draftStart || "05 Oct 2026 08:00",
-      endAt: draftEnd || "07 Oct 2026 18:00",
-      start: (draftStart || "05 Oct 2026").slice(0, 11),
-      end: (draftEnd || "07 Oct 2026").slice(0, 11),
+      startAt,
+      endAt,
+      start: startAt.slice(0, 11),
+      end: endAt.slice(0, 11),
+      startAtIso: startIso,
+      endAtIso: endIso,
       days: "2 days",
       status: "Planning",
       groups: groups.length || 0,
@@ -254,7 +521,7 @@ export default function OperationsPage() {
         lat: base.center[1] + 0.002 - index * 0.006,
       })),
     };
-    setRows((currentRows) => [created, ...currentRows]);
+    setMockRows((currentRows) => [created, ...currentRows]);
     setCreateOpen(false);
     openDetail(id);
   }
@@ -305,17 +572,23 @@ export default function OperationsPage() {
                 <div className="ops2-create-row">
                   <label>
                     <span>Start Date</span>
-                    <span className="ops2-date">
-                      <Icon name="calendar" size={14} />
-                      <input value={draftStart} onChange={(event) => setDraftStart(event.target.value)} placeholder="05 Oct 2026 08:00" />
-                    </span>
+                    <DateTimeField
+                      value={draftStart}
+                      onChange={setDraftStart}
+                      placeholder="Select start date"
+                      required
+                      ariaLabel="Start date"
+                    />
                   </label>
                   <label>
                     <span>End Date</span>
-                    <span className="ops2-date">
-                      <Icon name="calendar" size={14} />
-                      <input value={draftEnd} onChange={(event) => setDraftEnd(event.target.value)} placeholder="07 Oct 2026 18:00" />
-                    </span>
+                    <DateTimeField
+                      value={draftEnd}
+                      onChange={setDraftEnd}
+                      placeholder="Select end date"
+                      required
+                      ariaLabel="End date"
+                    />
                   </label>
                 </div>
               </section>
@@ -425,33 +698,43 @@ export default function OperationsPage() {
                 <div className="ops2-create-row">
                   <label>
                     <span>Start Date</span>
-                    <span className="ops2-date">
-                      <Icon name="calendar" size={14} />
-                      <input value={draftStart} onChange={(event) => setDraftStart(event.target.value)} />
-                    </span>
+                    <DateTimeField
+                      value={draftStart}
+                      onChange={setDraftStart}
+                      placeholder="Select start date"
+                      required
+                      ariaLabel="Start date"
+                    />
                   </label>
                   <label>
                     <span>End Date</span>
-                    <span className="ops2-date">
-                      <Icon name="calendar" size={14} />
-                      <input value={draftEnd} onChange={(event) => setDraftEnd(event.target.value)} />
-                    </span>
+                    <DateTimeField
+                      value={draftEnd}
+                      onChange={setDraftEnd}
+                      placeholder="Select end date"
+                      required
+                      ariaLabel="End date"
+                    />
                   </label>
                 </div>
-                <div className="ops2-create-row">
-                  <label>
-                    <span>Duration</span>
-                    <input value={draftDays} onChange={(event) => setDraftDays(event.target.value)} placeholder="2 days" />
-                  </label>
-                  <label>
-                    <span>Status</span>
-                    <select value={draftStatus} onChange={(event) => setDraftStatus(event.target.value as OpStatus)}>
-                      {OP_STATUSES.map((item) => (
-                        <option key={item} value={item}>{statusLabel(item)}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
+                {mode === "mock" ? (
+                  <div className="ops2-create-row">
+                    <label>
+                      <span>Duration</span>
+                      <input value={draftDays} onChange={(event) => setDraftDays(event.target.value)} placeholder="2 days" />
+                    </label>
+                    <label>
+                      <span>Status</span>
+                      <select value={draftStatus} onChange={(event) => setDraftStatus(event.target.value as OpStatus)}>
+                        {OP_STATUSES.map((item) => (
+                          <option key={item} value={item}>{statusLabel(item)}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                ) : (
+                  <p className="ops2-empty">Status changes use Activate / Hold / Resume / Complete / Cancel from Actions.</p>
+                )}
                 <div className="ops2-edit-meta">
                   <div>
                     <span>Created By</span>
@@ -500,6 +783,13 @@ export default function OperationsPage() {
             {actionsOpen ? (
               <div className="ops2-menu">
                 <button type="button" onClick={openEditDetails}>Edit details</button>
+                {mode === "live"
+                  ? statusActionsFor(selected.status).map((item) => (
+                    <button key={item.action} type="button" onClick={() => runStatusAction(item.action)}>
+                      {item.label}
+                    </button>
+                  ))
+                  : null}
               </div>
             ) : null}
           </div>
@@ -517,6 +807,8 @@ export default function OperationsPage() {
             </button>
           ))}
         </nav>
+
+        {liveError ? <p className="ops2-empty" role="alert">{liveError}</p> : null}
 
         {tab === "overview" ? (
           <div className="ops2-overview">
@@ -554,7 +846,7 @@ export default function OperationsPage() {
                 <article>
                   <Icon name="shield" size={15} />
                   <div>
-                    <strong>{geofenceCatalog.length}</strong>
+                    <strong>{selected.geofences}</strong>
                     <small>Geofences</small>
                   </div>
                 </article>
@@ -612,13 +904,13 @@ export default function OperationsPage() {
                         </button>
                         {expanded ? (
                           <ul className="ops2-member-list">
-                            {row.members.map((member, memberIndex) => (
-                              <li key={`${row.name}-${member}-${memberIndex}`}>
+                            {row.members.map((member) => (
+                              <li key={`${row.name}-${member}`}>
                                 <Icon name="user" size={12} />
-                                <span>{member}</span>
-                                {memberIndex === 0 ? <small>Commander</small> : null}
+                                <span>{mode === "live" ? `Soldier ${member}` : member}</span>
                               </li>
                             ))}
+                            {!row.members.length ? <li className="ops2-empty">No personnel in this group.</li> : null}
                           </ul>
                         ) : null}
                       </li>
@@ -633,7 +925,7 @@ export default function OperationsPage() {
 
             <section className="ops2-card ops2-overview-geofences">
               <header>
-                <h2>Geofences</h2>
+                <h2>Selected Geofences</h2>
               </header>
               <div className="ops2-geofence-table-wrap">
                 <table className="ops2-mini-table ops2-geofence-table">
@@ -650,28 +942,33 @@ export default function OperationsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {geofenceCatalog.map((zone, index) => (
-                      <tr key={zone.id}>
-                        <td>{index + 1}</td>
-                        <td>
-                          <strong>{zone.name}</strong>
-                          {zone.description ? <small>{zone.description}</small> : null}
-                        </td>
-                        <td>
-                          <span className="ops2-type" style={{ color: TYPE_META[zone.type].color }}>
-                            {TYPE_META[zone.type].label}
-                          </span>
-                        </td>
-                        <td><em className={`ops2-pill ${zone.status}`}>{zone.status}</em></td>
-                        <td>{zone.groups.join(", ") || "—"}</td>
-                        <td>{zone.areaKm2} km²</td>
-                        <td>{zone.triggered24h}</td>
-                        <td>{zone.lastTriggered || "—"}</td>
-                      </tr>
-                    ))}
-                    {!geofenceCatalog.length ? (
+                    {selected.geofenceRows.map((row, index) => {
+                      const zone = geofenceCatalog.find((item) => item.name === row.name || String(item.id) === String(row.id));
+                      return (
+                        <tr key={row.id ?? row.name}>
+                          <td>{index + 1}</td>
+                          <td>
+                            <strong>{row.name}</strong>
+                            {zone?.description ? <small>{zone.description}</small> : null}
+                          </td>
+                          <td>
+                            {zone ? (
+                              <span className="ops2-type" style={{ color: TYPE_META[zone.type].color }}>
+                                {TYPE_META[zone.type].label}
+                              </span>
+                            ) : row.type}
+                          </td>
+                          <td><em className={`ops2-pill ${zone?.status ?? "active"}`}>{zone?.status ?? "linked"}</em></td>
+                          <td>{zone?.groups.join(", ") || "—"}</td>
+                          <td>{zone ? `${zone.areaKm2} km²` : "—"}</td>
+                          <td>{zone?.triggered24h ?? "—"}</td>
+                          <td>{zone?.lastTriggered || "—"}</td>
+                        </tr>
+                      );
+                    })}
+                    {!selected.geofenceRows.length ? (
                       <tr>
-                        <td colSpan={8} className="ops2-empty">No geofences in the geofence list yet.</td>
+                        <td colSpan={8} className="ops2-empty">No geofences linked to this operation.</td>
                       </tr>
                     ) : null}
                   </tbody>
@@ -708,13 +1005,32 @@ export default function OperationsPage() {
             {selected.alertRows.length ? (
               <ul className="ops2-alert-list">
                 {selected.alertRows.map((row) => (
-                  <li key={row.title}>
+                  <li key={row.id ?? row.title}>
                     <Icon name="warn" size={14} />
                     <div>
                       <strong>{row.title}</strong>
                       <small>{row.detail}</small>
                     </div>
                     <em className={`ops2-pill ${row.level.toLowerCase()}`}>{row.level}</em>
+                    {mode === "live" && row.id != null ? (
+                      <button
+                        type="button"
+                        className="ops2-mini"
+                        onClick={async () => {
+                          try {
+                            await createTicketFromAlert(row.id as number);
+                            const enriched = await fetchEnrichedOperation(Number(selected.id));
+                            setLiveRows((current) => current.map((item) => (item.id === enriched.id ? enriched : item)));
+                            setTab("tickets");
+                            setLiveError("");
+                          } catch (error) {
+                            setLiveError(error instanceof Error ? error.message : "Unable to create ticket.");
+                          }
+                        }}
+                      >
+                        Create ticket
+                      </button>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -727,7 +1043,22 @@ export default function OperationsPage() {
         {tab === "tickets" ? (
           <section className="ops2-card">
             <header><h2>Tickets</h2></header>
-            <p className="ops2-empty">No tickets linked to this operation yet.</p>
+            {(selected.ticketRows ?? []).length ? (
+              <ul className="ops2-alert-list">
+                {(selected.ticketRows ?? []).map((row) => (
+                  <li key={row.id}>
+                    <Icon name="file" size={14} />
+                    <div>
+                      <strong>{row.code}</strong>
+                      <small>{row.alertType} · {row.status}</small>
+                    </div>
+                    <em className={`ops2-pill ${row.priority.toLowerCase()}`}>{row.priority}</em>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="ops2-empty">No tickets linked to this operation yet.</p>
+            )}
           </section>
         ) : null}
       </div>
@@ -751,6 +1082,8 @@ export default function OperationsPage() {
           Create Operation
         </button>
       </header>
+
+      {liveError ? <p className="ops2-empty" role="alert">{liveError}</p> : null}
 
       <section className="ops2-stats" aria-label="Operation totals">
         <article className="total">
@@ -840,10 +1173,14 @@ export default function OperationsPage() {
               <label className="ops2-filter-field">
                 <Icon name="users" size={13} />
                 <select value={groupFilter} onChange={(event) => { setGroupFilter(event.target.value); setPage(1); }}>
-                  <option>All Groups</option>
-                  {groupNames.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
+                  <option value="all">All Groups</option>
+                  {mode === "live"
+                    ? filterGroups.map((item) => (
+                      <option key={item.id} value={String(item.id)}>{item.name}</option>
+                    ))
+                    : groupNames.map((item) => (
+                      <option key={item} value={item}>{item}</option>
+                    ))}
                 </select>
               </label>
             </section>
@@ -908,7 +1245,7 @@ export default function OperationsPage() {
           </div>
 
           <footer className="ops2-pager">
-            <span>Showing {from} to {to} of {filtered.length} operations</span>
+            <span>Showing {from} to {to} of {listTotal} operations</span>
             <div>
               <button type="button" disabled={current <= 1} onClick={() => setPage(current - 1)} aria-label="Previous page">
                 <Icon name="chevron" size={14} />

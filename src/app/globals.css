@@ -12875,6 +12875,256 @@ body:has(.exp-page),
 .cal-pop footer { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-soft); }
 .cal-pop footer button { color: var(--accent); font-size: 12px; font-weight: 600; }
 
+.dtf {
+  position: relative;
+  width: 100%;
+}
+
+.dtf-trigger {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dtf-trigger svg {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+.dtf-trigger span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dtf-trigger span.muted {
+  color: var(--text-muted);
+}
+
+.dtf.open .dtf-trigger,
+.dtf-trigger:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.dtf-required {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+
+.dtf-pop {
+  position: fixed;
+  z-index: 160;
+  width: min(320px, calc(100vw - 16px));
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 96%, #0b1220);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.42);
+  animation: dtf-pop 0.16s ease;
+}
+
+@keyframes dtf-pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dtf-pop-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dtf-pop-head strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.dtf-pop-head small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+.dtf-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.dtf-nav button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.dtf-nav button:first-child svg { transform: rotate(180deg); }
+.dtf-nav button:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.dtf-week,
+.dtf-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dtf-week span {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding-bottom: 6px;
+}
+
+.dtf-grid button {
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+.dtf-grid button.out { color: var(--text-faint); opacity: 0.55; }
+.dtf-grid button.today:not(.on) {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.dtf-grid button.on {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.dtf-grid button:hover:not(.on) {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.dtf-time {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.dtf-time > div {
+  display: grid;
+  gap: 6px;
+}
+
+.dtf-time > div > span {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dtf-chips {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.dtf-chips button {
+  flex: 0 0 auto;
+  min-width: 36px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dtf-chips button.on {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.dtf-chips button:hover:not(.on) {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.dtf-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.dtf-foot > div {
+  display: flex;
+  gap: 6px;
+}
+
+.dtf-foot button {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dtf-foot button.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.dtf-foot > button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.dtf-foot > button:hover,
+.dtf-foot button:hover:not(.primary) {
+  color: var(--text);
+}
+
 .ui-drop { position: relative; display: inline-flex; min-width: 0; vertical-align: middle; }
 .ui-drop.block { display: flex; width: 100%; }
 .ui-drop > button {
@@ -13160,7 +13410,8 @@ body:has(.ops2-list),
 .ops2-filter-field select,
 .ops2-create input,
 .ops2-create textarea,
-.ops2-date input {
+.ops2-date input,
+.ops2-date .ops2-date-input {
   border: 0;
   outline: 0;
   background: transparent;
@@ -13491,11 +13742,71 @@ body:has(.ops2-list),
 }
 
 .ops2-date {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   height: 38px;
+  padding-right: 10px;
   color: var(--text-muted);
+  overflow: hidden;
+}
+
+.ops2-date > svg {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.ops2-date .ops2-date-input {
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  color-scheme: inherit;
+}
+
+[data-theme="blue"] .ops2-date .ops2-date-input {
+  color-scheme: dark;
+}
+
+[data-theme="gray"] .ops2-date .ops2-date-input {
+  color-scheme: light;
+}
+
+/* Keep one calendar icon (ours); hide the native duplicate picker glyph. */
+.ops2-date .ops2-date-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ops2-date .ops2-date-input[type="datetime-local"]::-webkit-datetime-edit,
+.ops2-date .ops2-date-input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+.ops2-date .ops2-date-input[type="datetime-local"]::-webkit-datetime-edit-text {
+  color: var(--text-muted);
+  padding: 0 2px;
+}
+
+.ops2-date .ops2-date-input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+.ops2-date .ops2-date-input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+.ops2-date .ops2-date-input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+.ops2-date .ops2-date-input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+.ops2-date .ops2-date-input[type="datetime-local"]::-webkit-datetime-edit-minute-field,
+.ops2-date .ops2-date-input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
+  color: var(--text);
+  padding: 0 1px;
 }
 
 .ops2-create-row {
