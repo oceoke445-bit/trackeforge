@@ -79,6 +79,15 @@ function statusLabel(status: OpStatus) {
   return status.toUpperCase();
 }
 
+function alertTitle(value: string) {
+  return value
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((part) => (part === "sos" ? "SOS" : part.slice(0, 1).toUpperCase() + part.slice(1)))
+    .join(" ");
+}
+
 export default function OperationsPage() {
   const { mode: geofenceMode } = useGeofenceFeed();
   const { mode, pending, runId, finish, fail } = useOperationFeed();
@@ -1005,32 +1014,36 @@ export default function OperationsPage() {
             {selected.alertRows.length ? (
               <ul className="ops2-alert-list">
                 {selected.alertRows.map((row) => (
-                  <li key={row.id ?? row.title}>
-                    <Icon name="warn" size={14} />
-                    <div>
-                      <strong>{row.title}</strong>
+                  <li key={row.id ?? row.title} className="ops2-alert-item">
+                    <span className={`ops2-alert-icon ${row.level.toLowerCase()}`}>
+                      <Icon name="warn" size={14} />
+                    </span>
+                    <div className="ops2-alert-body">
+                      <div className="ops2-alert-top">
+                        <strong>{alertTitle(row.title)}</strong>
+                        <em className={`ops2-pill ${row.level.toLowerCase()}`}>{row.level}</em>
+                      </div>
                       <small>{row.detail}</small>
+                      {mode === "live" && row.id != null ? (
+                        <button
+                          type="button"
+                          className="ops2-alert-action"
+                          onClick={async () => {
+                            try {
+                              await createTicketFromAlert(row.id as number);
+                              const enriched = await fetchEnrichedOperation(Number(selected.id));
+                              setLiveRows((current) => current.map((item) => (item.id === enriched.id ? enriched : item)));
+                              setTab("tickets");
+                              setLiveError("");
+                            } catch (error) {
+                              setLiveError(error instanceof Error ? error.message : "Unable to create ticket.");
+                            }
+                          }}
+                        >
+                          Create ticket
+                        </button>
+                      ) : null}
                     </div>
-                    <em className={`ops2-pill ${row.level.toLowerCase()}`}>{row.level}</em>
-                    {mode === "live" && row.id != null ? (
-                      <button
-                        type="button"
-                        className="ops2-mini"
-                        onClick={async () => {
-                          try {
-                            await createTicketFromAlert(row.id as number);
-                            const enriched = await fetchEnrichedOperation(Number(selected.id));
-                            setLiveRows((current) => current.map((item) => (item.id === enriched.id ? enriched : item)));
-                            setTab("tickets");
-                            setLiveError("");
-                          } catch (error) {
-                            setLiveError(error instanceof Error ? error.message : "Unable to create ticket.");
-                          }
-                        }}
-                      >
-                        Create ticket
-                      </button>
-                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -1046,13 +1059,17 @@ export default function OperationsPage() {
             {(selected.ticketRows ?? []).length ? (
               <ul className="ops2-alert-list">
                 {(selected.ticketRows ?? []).map((row) => (
-                  <li key={row.id}>
-                    <Icon name="file" size={14} />
-                    <div>
-                      <strong>{row.code}</strong>
-                      <small>{row.alertType} · {row.status}</small>
+                  <li key={row.id} className="ops2-alert-item">
+                    <span className={`ops2-alert-icon ${row.priority.toLowerCase()}`}>
+                      <Icon name="file" size={14} />
+                    </span>
+                    <div className="ops2-alert-body">
+                      <div className="ops2-alert-top">
+                        <strong>{row.code}</strong>
+                        <em className={`ops2-pill ${row.priority.toLowerCase()}`}>{row.priority}</em>
+                      </div>
+                      <small>{alertTitle(row.alertType)} · {row.status}</small>
                     </div>
-                    <em className={`ops2-pill ${row.priority.toLowerCase()}`}>{row.priority}</em>
                   </li>
                 ))}
               </ul>
