@@ -22,9 +22,7 @@ const API_TYPE: Record<AlertType, string> = {
   "No Contact": "NO_CONTACT",
 };
 
-const RANGE_MS = { "1h": 3_600_000, "6h": 21_600_000, "24h": 86_400_000, "7d": 604_800_000 } as const;
-
-export type AlertRange = keyof typeof RANGE_MS;
+export type AlertRange = "all" | "30d";
 
 type ApiAlert = {
   id: number;
@@ -56,15 +54,6 @@ function clockMs() {
   return Date.parse(ALERT_CLOCK);
 }
 
-function iso(ms: number) {
-  return new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
-}
-
-export function alertWindow(range: AlertRange) {
-  const end = clockMs();
-  return { from_time: iso(end - RANGE_MS[range]), to_time: ALERT_CLOCK };
-}
-
 export function alertQuery(input: {
   range: AlertRange;
   severities: Severity[];
@@ -73,7 +62,7 @@ export function alertQuery(input: {
   allSeverities: number;
   allTypes: number;
 }) {
-  const params = new URLSearchParams(alertWindow(input.range));
+  const params = new URLSearchParams({ timeRange: input.range });
   if (input.severities.length > 0 && input.severities.length < input.allSeverities) {
     for (const severity of input.severities) params.append("severity", severity.toUpperCase());
   }

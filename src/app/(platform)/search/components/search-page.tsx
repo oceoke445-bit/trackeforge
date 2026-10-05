@@ -8,6 +8,7 @@ import {
   CATEGORY_COLOR,
   CATEGORY_LABEL,
   ENTITY_LABEL,
+  EXPLORER_RANGES,
   compact,
   explorerSearch,
   fetchExplorerBundle,
@@ -53,7 +54,7 @@ export default function SearchPage() {
   const [recordType, setRecordType] = useState("All Records");
   const [source, setSource] = useState(SOURCES[0]);
   const [gateway, setGateway] = useState(GATEWAYS[0]);
-  const [range, setRange] = useState("Last 24 hours");
+  const [range, setRange] = useState(EXPLORER_RANGES[0].label);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [selectedId, setSelectedId] = useState(EXPLORER_RECORDS[0].id);
@@ -213,6 +214,7 @@ export default function SearchPage() {
     setRecordType("All Records");
     setSource(SOURCES[0]);
     setGateway(GATEWAYS[0]);
+    setRange(EXPLORER_RANGES[0].label);
     setPage(1);
   }
 
@@ -227,7 +229,12 @@ export default function SearchPage() {
         <div className="exp-end">
           <label className="exp-select">
             <Icon name="calendar" size={13} />
-            <Dropdown value={range} onChange={(value) => { setRange(value); setPage(1); }} options={["Last 24 hours", "Last 6 hours", "Last 7 days"]} ariaLabel="Time range" />
+            <Dropdown
+              value={range}
+              onChange={(value) => { setRange(value); setPage(1); }}
+              options={EXPLORER_RANGES.map((item) => item.label)}
+              ariaLabel="Time range"
+            />
           </label>
           <button type="button" className="exp-export" onClick={mode === "live" ? exportCsv : undefined}>
             <Icon name="download" size={13} />

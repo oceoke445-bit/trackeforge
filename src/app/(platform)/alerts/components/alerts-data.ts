@@ -132,9 +132,7 @@ const extras = extraPlan.map((item, index) =>
 
 export const ALERTS: AlertItem[] = [...featured, ...extras].sort((a, b) => a.minutesAgo - b.minutesAgo);
 
-export function matchesRange(minutesAgo: number, range: "1h" | "6h" | "24h" | "7d") {
-  if (range === "1h") return minutesAgo <= 60;
-  if (range === "6h") return minutesAgo <= 360;
-  if (range === "24h") return minutesAgo <= 1440;
-  return minutesAgo <= 7 * 24 * 60;
+export function matchesRange(minutesAgo: number, range: "all" | "30d") {
+  if (range === "all") return true;
+  return minutesAgo <= 30 * 24 * 60;
 }

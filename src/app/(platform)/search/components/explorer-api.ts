@@ -1,6 +1,8 @@
 import type { IconName } from "@/components/ui/icon";
 import type { ExplorerRecord, RecordLevel } from "./search-data";
 
+export type ExplorerTimeRange = "all" | "30d";
+
 export type FilterOptions = {
   categories: string[];
   data_types: string[];
@@ -8,7 +10,13 @@ export type FilterOptions = {
   groups: string[];
   gateways: string[];
   position_sources: string[];
+  time_ranges?: ExplorerTimeRange[];
 };
+
+export const EXPLORER_RANGES = [
+  { id: "all" as const, label: "All time" },
+  { id: "30d" as const, label: "30 days" },
+];
 
 export type ExplorerSummary = {
   total: number;
@@ -136,12 +144,10 @@ function matchOption(label: string, options: string[] | undefined, aliases: Reco
   return options?.find((item) => item === label || pretty(item) === label);
 }
 
-function rangeBounds(range: string) {
-  const hours = range === "Last 6 hours" ? 6 : range === "Last 7 days" ? 24 * 7 : 24;
-  const to = new Date();
-  const from = new Date(to.getTime() - hours * 60 * 60 * 1000);
-  const stamp = (date: Date) => date.toISOString().replace(/\.\d{3}Z$/, "Z");
-  return { from_time: stamp(from), to_time: stamp(to) };
+export function toExplorerTimeRange(range: string): ExplorerTimeRange {
+  const key = range.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (key === "30d" || key === "30day" || key === "30days") return "30d";
+  return "all";
 }
 
 export function explorerSearch(input: {
@@ -157,7 +163,6 @@ export function explorerSearch(input: {
   offset: number;
   options?: FilterOptions;
 }) {
-  const bounds = rangeBounds(input.range);
   const params = new URLSearchParams();
   const q = input.query.trim();
   if (q) params.set("q", q);
@@ -175,8 +180,7 @@ export function explorerSearch(input: {
   if (input.group !== "All Groups") params.set("group_id", input.group);
   if (input.gateway !== "All Gateways") params.set("gateway_id", input.gateway);
   if (source) params.set("position_source", source);
-  params.set("from_time", bounds.from_time);
-  params.set("to_time", bounds.to_time);
+  params.set("timeRange", toExplorerTimeRange(input.range));
   params.set("limit", String(input.limit));
   params.set("offset", String(input.offset));
   return params;

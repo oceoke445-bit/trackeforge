@@ -2,8 +2,9 @@ import ExplorerFeedToggle from "@/components/explorer-feed-toggle";
 import GeofenceFeedToggle from "@/components/geofence-feed-toggle";
 import AlertFeedToggle from "@/components/alert-feed-toggle";
 import HistoryFeedToggle from "@/components/history-feed-toggle";
+import TicketFeedToggle from "@/components/ticket-feed-toggle";
 import HeaderClock from "@/components/header-clock";
-import HeaderNotifications from "@/components/header-notifications";
+// import HeaderNotifications from "@/components/header-notifications";
 import HeaderUser from "@/components/header-user";
 import Icon from "@/components/ui/icon";
 import SidebarToggle from "@/components/sidebar-toggle";
@@ -24,10 +25,11 @@ export default function TopHeader() {
       <GeofenceFeedToggle />
       <AlertFeedToggle />
       <HistoryFeedToggle />
+      <TicketFeedToggle />
       <div className="top-actions">
         {/* <ThemeToggle /> */}
         <HeaderClock />
-        <HeaderNotifications />
+        {/* <HeaderNotifications /> */}
         <span className="top-divider" aria-hidden="true" />
         <HeaderUser />
       </div>

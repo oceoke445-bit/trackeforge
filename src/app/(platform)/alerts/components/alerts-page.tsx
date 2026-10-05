@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Dropdown from "@/components/ui/dropdown";
 import Icon, { type IconName } from "@/components/ui/icon";
 import { useAlertFeed } from "@/lib/alert-feed";
-import { alertQuery, ALERT_CLOCK, fetchLiveAlerts, postAlertAction, summaryTypeCount, type AlertSummary } from "@/lib/alerts-api";
+import { alertQuery, ALERT_CLOCK, fetchLiveAlerts, summaryTypeCount, type AlertSummary } from "@/lib/alerts-api";
+import { createTicketFromAlert, TicketApiError } from "@/lib/tickets-api";
 import AlertMap from "./alert-map";
 import {
   ALERTS,
@@ -18,10 +20,8 @@ import {
 } from "./alerts-data";
 
 const RANGES = [
-  { id: "1h", label: "Last 1 Hour" },
-  { id: "6h", label: "Last 6 Hours" },
-  { id: "24h", label: "Last 24 Hours" },
-  { id: "7d", label: "Last 7 Days" },
+  { id: "all", label: "All time" },
+  { id: "30d", label: "30 days" },
 ] as const;
 
 const TYPE_ICON: Record<AlertType, IconName> = {
@@ -38,22 +38,21 @@ function toggle<T>(list: T[], value: T) {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
-const RANGE_MINUTES = { "1h": 60, "6h": 360, "24h": 1440, "7d": 7 * 24 * 60 } as const;
+const RANGE_MINUTES = { all: 90 * 24 * 60, "30d": 30 * 24 * 60 } as const;
 const WINDOW_END = new Date(2026, 9, 3, 22, 41);
 const LIVE_END = new Date(ALERT_CLOCK);
 
 function timelineBins(items: AlertItem[], range: keyof typeof RANGE_MINUTES, end = WINDOW_END) {
-  const span = RANGE_MINUTES[range];
-  const count = range === "7d" ? 42 : range === "24h" ? 24 : 12;
-  const every = range === "7d" ? 6 : range === "24h" ? 4 : 3;
-  const byHour = range === "1h" || range === "6h" || range === "24h";
+  const span = range === "all"
+    ? Math.max(RANGE_MINUTES.all, ...items.map((item) => item.minutesAgo), 1)
+    : RANGE_MINUTES["30d"];
+  const count = 30;
+  const every = 5;
   const size = span / count;
   const bins = Array.from({ length: count }, (_, index) => {
     const at = new Date(end.getTime() - (span - index * size) * 60_000);
     const show = index % every === 0 || index === count - 1;
-    const label = !show ? "" : byHour
-      ? `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`
-      : `${at.getMonth() + 1}/${at.getDate()}`;
+    const label = !show ? "" : `${at.getMonth() + 1}/${at.getDate()}`;
     return { critical: 0, warning: 0, info: 0, label };
   });
   for (const item of items) {
@@ -64,11 +63,13 @@ function timelineBins(items: AlertItem[], range: keyof typeof RANGE_MINUTES, end
 }
 
 export default function AlertsPage() {
-  const [range, setRange] = useState<(typeof RANGES)[number]["id"]>("7d");
+  const router = useRouter();
+  const [range, setRange] = useState<(typeof RANGES)[number]["id"]>("all");
+  const [creatingTicket, setCreatingTicket] = useState(false);
   const [severities, setSeverities] = useState<Severity[]>(["critical", "warning", "info"]);
   const [types, setTypes] = useState<AlertType[]>(ALERT_TYPES);
   const [groups, setGroups] = useState<GroupName[]>(GROUPS);
-  const [draftRange, setDraftRange] = useState<(typeof RANGES)[number]["id"]>("7d");
+  const [draftRange, setDraftRange] = useState<(typeof RANGES)[number]["id"]>("all");
   const [draftSeverities, setDraftSeverities] = useState<Severity[]>(["critical", "warning", "info"]);
   const [draftTypes, setDraftTypes] = useState<AlertType[]>(ALERT_TYPES);
   const [draftGroups, setDraftGroups] = useState<GroupName[]>(GROUPS);
@@ -130,7 +131,7 @@ export default function AlertsPage() {
   }
 
   function reset() {
-    setDraftRange("7d");
+    setDraftRange("all");
     setDraftSeverities(["critical", "warning", "info"]);
     setDraftTypes(ALERT_TYPES);
     setDraftGroups(GROUPS);
@@ -232,15 +233,28 @@ export default function AlertsPage() {
     wrap.scrollTop = Math.max(0, top - 8);
   }, [page, selectedId]);
 
-  async function runAction(item: AlertItem, action: "acknowledge" | "resolve") {
-    if (!item.apiId) return;
+  async function createTicket(item: AlertItem) {
+    if (!item.apiId || creatingTicket) return;
+    setCreatingTicket(true);
+    setLiveError("");
     try {
-      const next = await postAlertAction(item.apiId, action);
-      setLiveItems((current) => current.map((row) => (row.apiId === next.apiId ? next : row)));
-      setLiveError("");
-      await loadLive();
-    } catch {
-      setLiveError(`Could not ${action} this alert.`);
+      const ticket = await createTicketFromAlert(item.apiId);
+      setLiveItems((current) =>
+        current.map((row) =>
+          row.apiId === item.apiId ? { ...row, apiStatus: "ACKNOWLEDGED", status: "Acknowledged" } : row,
+        ),
+      );
+      router.push(`/tickets/${ticket.id}`);
+    } catch (err) {
+      const message =
+        err instanceof TicketApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Could not create ticket.";
+      setLiveError(message);
+    } finally {
+      setCreatingTicket(false);
     }
   }
 
@@ -335,7 +349,7 @@ export default function AlertsPage() {
       {liveError ? <p className="alt-live-error">{liveError}</p> : null}
 
       <section className="alt-histo" aria-label="Alert timeline">
-        <p className="alt-histo-title">Alerts — {range === "1h" ? "5m" : range === "6h" ? "30m" : range === "24h" ? "1h" : "4h"} intervals</p>
+        <p className="alt-histo-title">Alerts — {range === "30d" ? "1d" : "daily"} intervals</p>
         <div className="alt-bars">
           {bins.map((bin, index) => {
             const total = bin.critical + bin.warning + bin.info;
@@ -501,7 +515,8 @@ export default function AlertsPage() {
             tab={tab}
             onTab={setTab}
             onClose={() => setOpen(false)}
-            onAction={mode === "live" ? runAction : undefined}
+            onCreateTicket={mode === "live" ? createTicket : undefined}
+            creatingTicket={creatingTicket}
           />
         ) : null}
       </div>
@@ -514,14 +529,18 @@ function Detail({
   tab,
   onTab,
   onClose,
-  onAction,
+  onCreateTicket,
+  creatingTicket,
 }: {
   alert: AlertItem;
   tab: "details" | "related";
   onTab: (tab: "details" | "related") => void;
   onClose: () => void;
-  onAction?: (alert: AlertItem, action: "acknowledge" | "resolve") => void;
+  onCreateTicket?: (alert: AlertItem) => void;
+  creatingTicket?: boolean;
 }) {
+  const canTicket = onCreateTicket && (alert.apiStatus === "ACTIVE" || alert.apiStatus === "ACKNOWLEDGED");
+
   return (
     <aside className="alt-detail">
       <header>
@@ -541,8 +560,8 @@ function Detail({
         ))}
       </div>
       <div className="alt-detail-scroll">
-      {tab === "details" ? (
-        <>
+        {tab === "details" ? (
+          <>
             <dl className="alt-fields">
               <div><dt>Event Time</dt><dd>{alert.date} {alert.clock}<small>{alert.lastSeen}</small></dd></div>
               <div><dt>Alert Type</dt><dd>{alert.type}</dd></div>
@@ -553,40 +572,39 @@ function Detail({
               <div><dt>Last Seen</dt><dd>{alert.lastSeen}</dd></div>
               <div><dt>Battery Level</dt><dd>{alert.battery}</dd></div>
             </dl>
-          <div className="alt-loc-head">
-            <h3><Icon name="pin" size={14} /> Location</h3>
-            <span>{alert.lat.toFixed(4)}, {alert.lng.toFixed(4)}</span>
-          </div>
-          <AlertMap lng={alert.lng} lat={alert.lat} soldier={alert.soldier} type={alert.type} severity={alert.severity} />
-          {onAction && (alert.apiStatus === "ACTIVE" || alert.apiStatus === "ACKNOWLEDGED") ? (
-            <div className="alt-actions">
-              {alert.apiStatus === "ACTIVE" ? (
-                <button type="button" onClick={() => onAction(alert, "acknowledge")}>Acknowledge</button>
-              ) : null}
-              <button type="button" onClick={() => onAction(alert, "resolve")}>Resolve</button>
+            <div className="alt-loc-head">
+              <h3><Icon name="pin" size={14} /> Location</h3>
+              <span>{alert.lat.toFixed(4)}, {alert.lng.toFixed(4)}</span>
             </div>
-          ) : null}
-          {alert.hr ? (
-            <div className="alt-vitals">
-              <header><h3>Latest Vital (from Chest Strap)</h3><small>22:37:50</small></header>
-              <div>
-                <span><Icon name="heart" size={16} /><small>Heart Rate</small><strong>{alert.hr}</strong><em className="high">High</em></span>
-                <span><Icon name="signal" size={16} /><small>HRV</small><strong>{alert.hrv}</strong><em className="low">Low</em></span>
-                <span><Icon name="thermo" size={16} /><small>Body Temp</small><strong>{alert.temp}</strong><em className="high">High</em></span>
+            <AlertMap lng={alert.lng} lat={alert.lat} soldier={alert.soldier} type={alert.type} severity={alert.severity} />
+            {alert.hr ? (
+              <div className="alt-vitals">
+                <header><h3>Latest Vital (from Chest Strap)</h3><small>22:37:50</small></header>
+                <div>
+                  <span><Icon name="heart" size={16} /><small>Heart Rate</small><strong>{alert.hr}</strong><em className="high">High</em></span>
+                  <span><Icon name="signal" size={16} /><small>HRV</small><strong>{alert.hrv}</strong><em className="low">Low</em></span>
+                  <span><Icon name="thermo" size={16} /><small>Body Temp</small><strong>{alert.temp}</strong><em className="high">High</em></span>
+                </div>
               </div>
-            </div>
-          ) : null}
-        </>
-      ) : null}
-      {tab === "related" ? (
-        <dl className="alt-fields">
-          <div><dt>Alert ID</dt><dd>{alert.id}</dd></div>
-          <div><dt>Soldier</dt><dd>{alert.soldier}</dd></div>
-          <div><dt>Group</dt><dd>{alert.group}</dd></div>
-          <div><dt>Details</dt><dd>{alert.details}</dd></div>
-        </dl>
-      ) : null}
+            ) : null}
+          </>
+        ) : null}
+        {tab === "related" ? (
+          <dl className="alt-fields">
+            <div><dt>Alert ID</dt><dd>{alert.id}</dd></div>
+            <div><dt>Soldier</dt><dd>{alert.soldier}</dd></div>
+            <div><dt>Group</dt><dd>{alert.group}</dd></div>
+            <div><dt>Details</dt><dd>{alert.details}</dd></div>
+          </dl>
+        ) : null}
       </div>
+      {canTicket ? (
+        <div className="alt-detail-footer">
+          <button type="button" disabled={creatingTicket} onClick={() => onCreateTicket(alert)}>
+            {creatingTicket ? "Creating…" : "Create Ticket"}
+          </button>
+        </div>
+      ) : null}
     </aside>
   );
 }

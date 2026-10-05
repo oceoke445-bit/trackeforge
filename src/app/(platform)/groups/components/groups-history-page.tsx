@@ -39,13 +39,11 @@ import {
 } from "./history-track";
 
 const RANGES = [
-  { id: "1h", label: "Last 1 Hour" },
-  { id: "6h", label: "Last 6 Hours" },
-  { id: "24h", label: "Last 24 Hours" },
-  { id: "7d", label: "Last 7 Days" },
+  { id: "all", label: "All time" },
+  { id: "30d", label: "30 days" },
 ] as const;
 
-type RangeId = (typeof RANGES)[number]["id"] | "custom";
+type RangeId = (typeof RANGES)[number]["id"];
 type ViewBy = "soldier" | "group" | "weapon";
 type DataType = "telemetry" | "mesh" | "uplink" | "beacon" | "special" | "system";
 
@@ -132,12 +130,12 @@ function Spark({
 export default function GroupsHistoryPage() {
   const [draftView, setDraftView] = useState<ViewBy>("soldier");
   const [draftEntity, setDraftEntity] = useState("S-104");
-  const [draftRange, setDraftRange] = useState<RangeId>("24h");
+  const [draftRange, setDraftRange] = useState<RangeId>("all");
   const [draftTypes, setDraftTypes] = useState<DataType[]>(DATA_TYPES.map((item) => item.id));
   const [draftSources, setDraftSources] = useState<TrackSource[]>([...TRACK_SOURCES]);
   const [view, setView] = useState<ViewBy>("soldier");
   const [entity, setEntity] = useState("S-104");
-  const [range, setRange] = useState<RangeId>("24h");
+  const [range, setRange] = useState<RangeId>("all");
   const [types, setTypes] = useState<DataType[]>(DATA_TYPES.map((item) => item.id));
   const [sources, setSources] = useState<TrackSource[]>([...TRACK_SOURCES]);
   const [tab, setTab] = useState<"timeline" | "summary">("timeline");
@@ -367,7 +365,7 @@ export default function GroupsHistoryPage() {
   function reset() {
     setDraftView("soldier");
     setDraftEntity("S-104");
-    setDraftRange("24h");
+    setDraftRange("all");
     setDraftTypes(DATA_TYPES.map((item) => item.id));
     setDraftSources([...TRACK_SOURCES]);
   }
@@ -473,9 +471,7 @@ export default function GroupsHistoryPage() {
               {RANGES.map((item) => (
                 <button key={item.id} type="button" className={draftRange === item.id ? "on" : ""} onClick={() => setDraftRange(item.id)}>{item.label}</button>
               ))}
-              <button type="button" className={draftRange === "custom" ? "on wide" : "wide"} onClick={() => setDraftRange("custom")}>Custom Range</button>
             </div>
-            {mode === "live" ? <p className="trk-live-note">Live clock ends 04 Oct 2026 08:30 UTC. The seed window is 08:00–08:29 UTC.</p> : null}
           </section>
           <section>
             <h3>Data Type</h3>

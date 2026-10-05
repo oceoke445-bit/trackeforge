@@ -90,12 +90,15 @@ export type HistoryTrackPoint = {
   position_source: string | null;
 };
 
+export type HistoryTimeRange = "all" | "30d";
+
 export type HistoryFilterOptions = {
   data_types: string[];
   position_sources: string[];
   gateways: string[];
   soldiers: number[];
   groups: string[];
+  time_ranges?: HistoryTimeRange[];
 };
 
 export type HistoryPointDetail = HistoryItem & {
@@ -135,18 +138,13 @@ export type HistoryQuery = {
   groupId?: string;
   types?: string[];
   sources?: string[];
-  from: string;
-  to: string;
+  timeRange: HistoryTimeRange;
 };
 
-export function historyWindow(range: "1h" | "6h" | "24h" | "7d" | "custom") {
-  if (range === "custom") return { from: HISTORY_SEED_START, to: HISTORY_END };
-  const hours = range === "1h" ? 1 : range === "6h" ? 6 : range === "24h" ? 24 : 24 * 7;
-  const end = Date.parse(HISTORY_END);
-  return {
-    from: new Date(end - hours * 3600 * 1000).toISOString().replace(".000Z", "Z"),
-    to: HISTORY_END,
-  };
+export function toHistoryTimeRange(range: string): HistoryTimeRange {
+  const key = range.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (key === "30d" || key === "30day" || key === "30days") return "30d";
+  return "all";
 }
 
 export function soldierNumber(id: string) {
@@ -157,20 +155,20 @@ export function soldierNumber(id: string) {
 export function historyQuery(input: {
   view: "soldier" | "group" | "weapon";
   entity: string;
-  range: "1h" | "6h" | "24h" | "7d" | "custom";
+  range: HistoryTimeRange | string;
   types: HistoryDataTypeId[];
   sources: TrackSource[];
 }): HistoryQuery | null {
   if (input.view === "weapon" || !input.types.length || !input.sources.length) return null;
-  const window = historyWindow(input.range);
+  const timeRange = toHistoryTimeRange(input.range);
   const types = input.types.length === Object.keys(TYPE_API).length ? undefined : input.types.map((item) => TYPE_API[item]);
   const sources = input.sources.length === Object.keys(SOURCE_API).length ? undefined : input.sources.map((item) => SOURCE_API[item]);
   if (input.view === "group") {
-    return { scope: "GROUP", groupId: input.entity, types, sources, ...window };
+    return { scope: "GROUP", groupId: input.entity, types, sources, timeRange };
   }
   const soldierId = soldierNumber(input.entity);
   if (soldierId == null) return null;
-  return { scope: "SOLDIER", soldierId, types, sources, ...window };
+  return { scope: "SOLDIER", soldierId, types, sources, timeRange };
 }
 
 function paramsFor(query: HistoryQuery, includeFilters: boolean) {
@@ -178,8 +176,7 @@ function paramsFor(query: HistoryQuery, includeFilters: boolean) {
   params.set("scope", query.scope);
   if (query.scope === "SOLDIER" && query.soldierId != null) params.set("soldier_id", String(query.soldierId));
   if (query.scope === "GROUP" && query.groupId) params.set("group_id", query.groupId);
-  params.set("from_time", query.from);
-  params.set("to_time", query.to);
+  params.set("timeRange", query.timeRange);
   if (includeFilters) {
     query.types?.forEach((value) => params.append("history_data_type", value));
     query.sources?.forEach((value) => params.append("position_source", value));

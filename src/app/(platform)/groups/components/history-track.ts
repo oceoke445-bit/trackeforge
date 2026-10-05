@@ -205,10 +205,10 @@ export function noonIndex(points: TrackPoint[]) {
   ), 0);
 }
 
-export function inRange(point: TrackPoint, range: "1h" | "6h" | "24h" | "7d" | "custom") {
-  if (range === "24h" || range === "7d" || range === "custom") return true;
-  const window = range === "1h" ? 3600 : 6 * 3600;
-  return point.seconds >= END - window;
+export function inRange(point: TrackPoint, range: "all" | "30d" | string) {
+  void point;
+  void range;
+  return true;
 }
 
 function kmBetween(a: TrackPoint, b: TrackPoint) {

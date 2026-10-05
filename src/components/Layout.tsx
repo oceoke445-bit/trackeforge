@@ -8,6 +8,7 @@ import { ExplorerFeedProvider } from "@/lib/explorer-feed";
 import { GeofenceFeedProvider } from "@/lib/geofence-feed";
 import { AlertFeedProvider } from "@/lib/alert-feed";
 import { HistoryFeedProvider } from "@/lib/history-feed";
+import { TicketFeedProvider } from "@/lib/ticket-feed";
 import { hasSession } from "@/lib/session";
 import { AccessProvider } from "@/lib/access-session";
 import { SidebarProvider, useSidebar } from "@/lib/sidebar";
@@ -68,11 +69,13 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
       <GeofenceFeedProvider>
         <AlertFeedProvider>
           <HistoryFeedProvider>
-            <AccessProvider>
-              <SidebarProvider>
-                <Shell>{children}</Shell>
-              </SidebarProvider>
-            </AccessProvider>
+            <TicketFeedProvider>
+              <AccessProvider>
+                <SidebarProvider>
+                  <Shell>{children}</Shell>
+                </SidebarProvider>
+              </AccessProvider>
+            </TicketFeedProvider>
           </HistoryFeedProvider>
         </AlertFeedProvider>
       </GeofenceFeedProvider>

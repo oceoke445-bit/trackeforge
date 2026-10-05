@@ -8,14 +8,20 @@ import { buildBaseStyle } from "@/components/map/styles";
 import { bindGeofenceOverlay } from "@/components/map/geofence-overlay";
 import type { AlertType, Severity } from "./alerts-data";
 
-const PIN_LABEL: Record<AlertType, string> = {
+const PIN_LABEL: Record<string, string> = {
   SOS: "SOS",
   Casualty: "CAS",
   Arrhythmia: "ARR",
+  Health: "HLT",
   "Low Battery": "LOW",
+  "Out of Geofence": "GEO",
+  "No Movement": "STILL",
+  "Device Issue": "DEV",
+  "High Temperature": "HEAT",
   "Heat Stress": "HEAT",
   "Strap Disconnected": "STRAP",
   "No Contact": "NONE",
+  Others: "!",
 };
 
 let workerReady = false;
@@ -35,7 +41,7 @@ export default function AlertMap({
   lng: number;
   lat: number;
   soldier: string;
-  type: AlertType;
+  type: AlertType | string;
   severity: Severity;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -77,7 +83,7 @@ export default function AlertMap({
     markerRef.current?.remove();
     const pin = document.createElement("div");
     pin.className = `alt-pin ${severity}`;
-    pin.textContent = PIN_LABEL[type];
+    pin.textContent = PIN_LABEL[type] ?? type.slice(0, 3).toUpperCase();
     pin.title = `${type} · ${soldier}`;
     markerRef.current = new Marker({ element: pin, anchor: "center" }).setLngLat([lng, lat]).addTo(map);
   }, [lat, lng, severity, soldier, type]);

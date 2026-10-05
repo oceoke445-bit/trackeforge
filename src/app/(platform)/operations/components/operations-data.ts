@@ -1,11 +1,41 @@
-export type OpStatus = "Active" | "Ongoing" | "Planning" | "Completed" | "Cancelled";
+export type OpStatus = "Active" | "Planning" | "Completed" | "On Hold" | "Cancelled";
 
 export type OpLayers = {
   groups: boolean;
   personnel: boolean;
-  weapons: boolean;
-  geofences: boolean;
-  routes: boolean;
+};
+
+export type OpGroupRow = {
+  name: string;
+  count: number;
+  commander: string;
+  status: string;
+  members: string[];
+};
+
+const MEMBER_NAMES = [
+  "Andi", "Budi", "Citra", "Dewi", "Eko", "Fajar", "Gita", "Hadi",
+  "Indra", "Joko", "Kirana", "Laras", "Maya", "Nanda", "Omar", "Putri",
+];
+
+export function membersFor(commander: string, count: number, seed = 0): string[] {
+  const ranks = ["Pvt.", "Cpl.", "Sgt.", "Spc."];
+  const members = [commander];
+  for (let index = 1; index < count; index += 1) {
+    const rank = ranks[(index + seed) % ranks.length];
+    const name = MEMBER_NAMES[(index + seed) % MEMBER_NAMES.length];
+    members.push(`${rank} ${name}`);
+  }
+  return members;
+}
+
+function groupRow(name: string, count: number, commander: string, status: string, seed = 0): OpGroupRow {
+  return { name, count, commander, status, members: membersFor(commander, count, seed) };
+}
+
+export type OpGeofenceRow = {
+  name: string;
+  type: "POLYGON" | "CIRCLE";
 };
 
 export type Operation = {
@@ -21,6 +51,8 @@ export type Operation = {
   groups: number;
   personnel: number;
   weapons: number;
+  geofences: number;
+  devices: number;
   photo: string;
   focus: string;
   summary: string;
@@ -32,7 +64,8 @@ export type Operation = {
   weaponsOnline: number;
   alerts: number;
   critical: number;
-  groupRows: { name: string; count: number; status: string }[];
+  groupRows: OpGroupRow[];
+  geofenceRows: OpGeofenceRow[];
   alertRows: { title: string; detail: string; level: string }[];
   gateway: string;
   gatewayPlace: string;
@@ -48,6 +81,26 @@ export type Operation = {
   alertPins: [number, number][];
   gatewayPin: [number, number];
 };
+
+export const OP_STATUSES: OpStatus[] = ["Active", "Planning", "Completed", "On Hold", "Cancelled"];
+
+export const CATALOG_GROUPS = [
+  { id: "alpha", name: "Alpha", personnel: 12, commander: "Lt. Rina" },
+  { id: "bravo", name: "Bravo", personnel: 10, commander: "Sgt. Dimas" },
+  { id: "charlie", name: "Charlie", personnel: 8, commander: "Cpl. Fajar" },
+  { id: "delta", name: "Delta", personnel: 9, commander: "Lt. Arif" },
+  { id: "echo", name: "Echo", personnel: 7, commander: "Sgt. Maya" },
+  { id: "weapons", name: "Weapons", personnel: 6, commander: "WO Budi" },
+];
+
+export const CATALOG_GEOFENCES = [
+  { id: "north", name: "North Perimeter", type: "POLYGON" as const },
+  { id: "recon", name: "Recon Zone", type: "POLYGON" as const },
+  { id: "staging", name: "Staging Area", type: "CIRCLE" as const },
+  { id: "coastal", name: "Coastal Watch", type: "POLYGON" as const },
+  { id: "ridge", name: "Eastern Ridge", type: "POLYGON" as const },
+  { id: "valley", name: "Western Valley", type: "CIRCLE" as const },
+];
 
 function diamond(lng: number, lat: number): [number, number][] {
   const ring: [number, number][] = [
@@ -90,15 +143,17 @@ export const OPERATIONS: Operation[] = [
     end: "05 Oct 2026",
     startAt: "03 Oct 2026 08:00",
     endAt: "05 Oct 2026 16:00",
-    days: "3 days",
+    days: "2 days",
     status: "Active",
     groups: 3,
     personnel: 24,
     weapons: 6,
+    geofences: 2,
+    devices: 18,
     photo: PHOTOS[0],
     focus: "center",
     summary: "Reconnaissance and surveillance operation in Northern Sector to monitor potential movement and secure key routes.",
-    createdBy: "Admin",
+    createdBy: "Admin User",
     createdAt: "02 Oct 2026 10:24",
     updatedAt: "03 Oct 2026 12:16",
     groupsActive: 2,
@@ -107,9 +162,13 @@ export const OPERATIONS: Operation[] = [
     alerts: 2,
     critical: 1,
     groupRows: [
-      { name: "Alpha-1", count: 8, status: "Active" },
-      { name: "Alpha-2", count: 8, status: "Active" },
-      { name: "Alpha-3", count: 8, status: "Active" },
+      groupRow("Alpha-1", 8, "Lt. Rina", "Active", 0),
+      groupRow("Alpha-2", 8, "Sgt. Dimas", "Active", 3),
+      groupRow("Alpha-3", 8, "Cpl. Fajar", "Active", 6),
+    ],
+    geofenceRows: [
+      { name: "North Perimeter", type: "POLYGON" },
+      { name: "Recon Zone", type: "POLYGON" },
     ],
     alertRows: [
       { title: "Personnel Inactive", detail: "Alpha-2 · 15 min ago", level: "Critical" },
@@ -135,15 +194,17 @@ export const OPERATIONS: Operation[] = [
     end: "04 Oct 2026",
     startAt: "02 Oct 2026 06:00",
     endAt: "04 Oct 2026 18:00",
-    days: "3 days",
-    status: "Ongoing",
+    days: "2 days",
+    status: "Planning",
     groups: 2,
     personnel: 16,
     weapons: 6,
+    geofences: 1,
+    devices: 12,
     photo: PHOTOS[1],
     focus: "center",
     summary: "Coastal watch for Operation Bravo. Teams hold the shoreline approaches and report movement along the coastal road.",
-    createdBy: "Admin",
+    createdBy: "Admin User",
     createdAt: "01 Oct 2026 09:10",
     updatedAt: "02 Oct 2026 11:40",
     groupsActive: 2,
@@ -152,9 +213,10 @@ export const OPERATIONS: Operation[] = [
     alerts: 1,
     critical: 0,
     groupRows: [
-      { name: "Bravo-1", count: 8, status: "Active" },
-      { name: "Bravo-2", count: 8, status: "Active" },
+      groupRow("Bravo-1", 8, "Lt. Arif", "Active", 1),
+      groupRow("Bravo-2", 8, "Sgt. Maya", "Active", 4),
     ],
+    geofenceRows: [{ name: "Coastal Watch", type: "POLYGON" }],
     alertRows: [{ title: "Route deviation", detail: "Bravo-2 · 28 min ago", level: "Medium" }],
     gateway: "GW-02",
     gatewayPlace: "Coastal Ridge",
@@ -174,15 +236,17 @@ export const OPERATIONS: Operation[] = [
     end: "03 Oct 2026",
     startAt: "01 Oct 2026 07:00",
     endAt: "03 Oct 2026 19:00",
-    days: "3 days",
-    status: "Planning",
+    days: "2 days",
+    status: "On Hold",
     groups: 4,
     personnel: 28,
     weapons: 8,
+    geofences: 2,
+    devices: 20,
     photo: PHOTOS[2],
     focus: "center 40%",
     summary: "Planned sweep of the Southern Sector. Routes and geofences are staged before the teams step off.",
-    createdBy: "Admin",
+    createdBy: "Admin User",
     createdAt: "30 Sep 2026 15:00",
     updatedAt: "01 Oct 2026 08:12",
     groupsActive: 1,
@@ -191,10 +255,14 @@ export const OPERATIONS: Operation[] = [
     alerts: 0,
     critical: 0,
     groupRows: [
-      { name: "Charlie-1", count: 8, status: "Active" },
-      { name: "Charlie-2", count: 8, status: "Planning" },
-      { name: "Charlie-3", count: 6, status: "Planning" },
-      { name: "Charlie-4", count: 6, status: "Planning" },
+      groupRow("Charlie-1", 8, "Lt. Rina", "Active", 2),
+      groupRow("Charlie-2", 8, "Sgt. Dimas", "Planning", 5),
+      groupRow("Charlie-3", 6, "Cpl. Fajar", "Planning", 8),
+      groupRow("Charlie-4", 6, "WO Budi", "Planning", 11),
+    ],
+    geofenceRows: [
+      { name: "Staging Area", type: "CIRCLE" },
+      { name: "Recon Zone", type: "POLYGON" },
     ],
     alertRows: [],
     gateway: "GW-03",
@@ -212,15 +280,17 @@ export const OPERATIONS: Operation[] = [
     end: "02 Oct 2026",
     startAt: "28 Sep 2026 05:30",
     endAt: "02 Oct 2026 17:00",
-    days: "5 days",
+    days: "4 days",
     status: "Completed",
     groups: 3,
     personnel: 20,
     weapons: 6,
+    geofences: 1,
+    devices: 14,
     photo: PHOTOS[0],
     focus: "center top",
     summary: "Eastern Ridge patrol. The operation closed after the ridge line was cleared and handed back.",
-    createdBy: "Admin",
+    createdBy: "Admin User",
     createdAt: "27 Sep 2026 11:00",
     updatedAt: "02 Oct 2026 17:10",
     groupsActive: 0,
@@ -229,10 +299,11 @@ export const OPERATIONS: Operation[] = [
     alerts: 0,
     critical: 0,
     groupRows: [
-      { name: "Delta-1", count: 8, status: "Completed" },
-      { name: "Delta-2", count: 6, status: "Completed" },
-      { name: "Delta-3", count: 6, status: "Completed" },
+      groupRow("Delta-1", 8, "Lt. Arif", "Completed", 0),
+      groupRow("Delta-2", 6, "Sgt. Maya", "Completed", 7),
+      groupRow("Delta-3", 6, "Cpl. Fajar", "Completed", 10),
     ],
+    geofenceRows: [{ name: "Eastern Ridge", type: "POLYGON" }],
     alertRows: [],
     gateway: "GW-04",
     gatewayPlace: "Eastern Ridge",
@@ -249,11 +320,13 @@ export const OPERATIONS: Operation[] = [
     end: "28 Sep 2026",
     startAt: "25 Sep 2026 06:00",
     endAt: "28 Sep 2026 18:00",
-    days: "4 days",
+    days: "3 days",
     status: "Completed",
     groups: 2,
     personnel: 14,
     weapons: 4,
+    geofences: 1,
+    devices: 10,
     photo: PHOTOS[1],
     focus: "left center",
     summary: "Western Valley reconnaissance. Both groups finished the route and returned to base.",
@@ -266,9 +339,10 @@ export const OPERATIONS: Operation[] = [
     alerts: 0,
     critical: 0,
     groupRows: [
-      { name: "Echo-1", count: 8, status: "Completed" },
-      { name: "Echo-2", count: 6, status: "Completed" },
+      groupRow("Echo-1", 8, "Sgt. Maya", "Completed", 2),
+      groupRow("Echo-2", 6, "WO Budi", "Completed", 9),
     ],
+    geofenceRows: [{ name: "Western Valley", type: "CIRCLE" }],
     alertRows: [],
     gateway: "GW-05",
     gatewayPlace: "Valley Floor",
@@ -276,114 +350,5 @@ export const OPERATIONS: Operation[] = [
     signal: 3,
     timeline: [{ time: "18:00", text: "Operation Echo completed" }],
     ...scene(106.74, -6.22, ["Echo-1", "Echo-2"]),
-  },
-  {
-    id: "foxtrot",
-    name: "Operation Foxtrot",
-    sector: "Border Patrol",
-    start: "20 Sep 2026",
-    end: "25 Sep 2026",
-    startAt: "20 Sep 2026 04:00",
-    endAt: "25 Sep 2026 12:00",
-    days: "6 days",
-    status: "Cancelled",
-    groups: 3,
-    personnel: 18,
-    weapons: 6,
-    photo: PHOTOS[0],
-    focus: "center bottom",
-    summary: "Border patrol that was cancelled before the second bound. Teams were recalled to base.",
-    createdBy: "Admin",
-    createdAt: "19 Sep 2026 16:40",
-    updatedAt: "21 Sep 2026 09:15",
-    groupsActive: 0,
-    personnelOnline: 0,
-    weaponsOnline: 0,
-    alerts: 0,
-    critical: 0,
-    groupRows: [
-      { name: "Foxtrot-1", count: 6, status: "Cancelled" },
-      { name: "Foxtrot-2", count: 6, status: "Cancelled" },
-      { name: "Foxtrot-3", count: 6, status: "Cancelled" },
-    ],
-    alertRows: [],
-    gateway: "GW-06",
-    gatewayPlace: "Border Post",
-    uplink: "21 Sep 2026 09:15",
-    signal: 2,
-    timeline: [{ time: "09:15", text: "Operation Foxtrot cancelled" }],
-    ...scene(106.88, -6.33, ["Foxtrot-1", "Foxtrot-2", "Foxtrot-3"]),
-  },
-  {
-    id: "golf",
-    name: "Operation Golf",
-    sector: "River Line",
-    start: "18 Sep 2026",
-    end: "22 Sep 2026",
-    startAt: "18 Sep 2026 07:00",
-    endAt: "22 Sep 2026 17:00",
-    days: "5 days",
-    status: "Completed",
-    groups: 2,
-    personnel: 12,
-    weapons: 4,
-    photo: PHOTOS[1],
-    focus: "center",
-    summary: "River line observation. Both groups held the crossing points for the full window.",
-    createdBy: "Admin",
-    createdAt: "17 Sep 2026 10:00",
-    updatedAt: "22 Sep 2026 17:20",
-    groupsActive: 0,
-    personnelOnline: 0,
-    weaponsOnline: 4,
-    alerts: 0,
-    critical: 0,
-    groupRows: [
-      { name: "Golf-1", count: 6, status: "Completed" },
-      { name: "Golf-2", count: 6, status: "Completed" },
-    ],
-    alertRows: [],
-    gateway: "GW-02",
-    gatewayPlace: "River Relay",
-    uplink: "22 Sep 2026 17:00",
-    signal: 4,
-    timeline: [{ time: "17:00", text: "Operation Golf completed" }],
-    ...scene(106.81, -6.19, ["Golf-1", "Golf-2"]),
-  },
-  {
-    id: "hotel",
-    name: "Operation Hotel",
-    sector: "North Road",
-    start: "06 Oct 2026",
-    end: "08 Oct 2026",
-    startAt: "06 Oct 2026 05:00",
-    endAt: "08 Oct 2026 20:00",
-    days: "3 days",
-    status: "Planning",
-    groups: 2,
-    personnel: 16,
-    weapons: 6,
-    photo: PHOTOS[2],
-    focus: "right center",
-    summary: "Planned movement watch along the north road. Geofences are drafted and not yet live.",
-    createdBy: "Sertu Arif",
-    createdAt: "03 Oct 2026 18:00",
-    updatedAt: "03 Oct 2026 18:40",
-    groupsActive: 0,
-    personnelOnline: 16,
-    weaponsOnline: 6,
-    alerts: 0,
-    critical: 0,
-    groupRows: [
-      { name: "Alpha-1", count: 8, status: "Planning" },
-      { name: "Bravo-1", count: 8, status: "Planning" },
-    ],
-    alertRows: [],
-    gateway: "GW-01",
-    gatewayPlace: "North Road",
-    uplink: "03 Oct 2026 18:40",
-    signal: 5,
-    timeline: [{ time: "18:40", text: "Operation Hotel draft created" }],
-    ...scene(106.86, -6.2, ["Alpha-1", "Bravo-1"]),
   },
 ];
